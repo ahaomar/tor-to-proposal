@@ -1,0 +1,32 @@
+{
+  "name": "tor-to-proposal",
+  "version": "1.0.0",
+  "description": "Traceable ToR-to-proposal toolkit for UN / NGO / government consultants. Deterministic CLI + agent workflow. The bid tool that refuses to lie.",
+  "type": "module",
+  "bin": {
+    "tor-to-proposal": "bin/tor-to-proposal.mjs"
+  },
+  "scripts": {
+    "test": "node test/run-tests.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "exceljs": "^4.4.0",
+    "mammoth": "^1.8.0",
+    "unpdf": "^1.8.1"
+  },
+  "keywords": [
+    "tor",
+    "proposal",
+    "un",
+    "ungm",
+    "consultant",
+    "tender",
+    "bid",
+    "agent-skills"
+  ],
+  "license": "MIT"
+}
