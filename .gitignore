@@ -7,3 +7,6 @@ library/bids/*
 !library/bids/.gitkeep
 market-rates-research.md
 client-dossier.md
+.agents/
+.claude/
+skills-lock.json
