@@ -2,178 +2,188 @@
 name: tor-to-proposal
 description: >
   Turn UN / NGO / government Terms of Reference (ToR), solicitations, RFPs and
-  job descriptions into traceable, compliance-checked consultant proposals.
-  MUST BE USED when the user mentions a ToR, tender, solicitation, RFP, RFQ,
-  IC/SSA consultancy, UNGM bid, UNDP/UNOPS/UNICEF/World Bank/USAID assignment,
-  wants a go/no-go bid decision, a compliance matrix, a cover letter for a
-  consultancy, CV tailoring against a ToR, consultancy pricing/day rates,
-  evaluation-criteria scoring of a draft, or a pre-submission audit of a
-  proposal. Covers: bid screen, CV gap analysis, cover letter lint, market
-  rate benchmarking, pricing model, client dossier, evaluation simulator,
-  filling the client's own docx/xlsx forms, and a final honesty audit.
+  job descriptions into a complete, verified bid pack — customized cover letter,
+  tailored CV, technical response, financial proposal, submission checklist —
+  as PDF/docx/xlsx in minutes. MUST BE USED when the user mentions a ToR,
+  tender, solicitation, RFP, RFQ, IC/SSA consultancy, UNGM bid,
+  UNDP/UNOPS/UNICEF/World Bank/USAID assignment, wants a go/no-go bid decision,
+  a compliance matrix, a cover letter for a consultancy, CV tailoring against a
+  ToR, consultancy pricing/day rates, evaluation-criteria scoring of a draft,
+  or a pre-submission audit of a proposal. Covers: bid screen, consolidated
+  questionnaire, CV gap analysis + tailoring, cover letter lint, market rate
+  benchmarking, pricing model, financial proposal, client dossier, evaluation
+  simulator, filling the client's own docx/xlsx forms, PDF packaging with a
+  final honesty audit.
 ---
 
 # tor-to-proposal — the bid tool that refuses to lie
 
 You (the agent) draft. The tools verify. Nothing ships that a tool has not
-gated. That division of labor is the whole product: an agent alone invents
-facts; regex alone cannot read a ToR. Together they produce proposals in
-which **every claim traces to the ToR (p.X), a user input, or a cited
-source — otherwise it stays `[FILL]`**.
+gated. Every claim traces to the ToR (p.X), a user input, or a cited source —
+otherwise it stays `[FILL]`.
+
+## The product: ToR + CV in → bid pack out
+
+The default experience is the **bid pack**. One ToR, one CV, one consolidated
+questionnaire, one verified, zipped submission folder:
+
+```
+<bid-dir>/pack/  Cover-Letter.pdf · CV.pdf · Technical-Proposal.pdf ·
+                 Financial-Proposal.pdf|xlsx · submission-checklist.md ·
+                 deadline.ics · audit passed on the final bytes
+```
 
 ## Bootstrap (once per machine)
 
 ```bash
-cd <this-skill-directory>
-npm install        # local only; unpdf, mammoth, exceljs, adm-zip
+npx tor-to-proposal init     # preferred: profile wizard (name, rates, master CV)
+# — or, from a clone:
+cd <this-skill-directory> && npm install
 ```
 
 All processing is local. No network calls are made with the user's documents.
+The only optional outbound step is market-rate research the user approves.
 
 ## Non-negotiable rules (enforced by the tools, restated for you)
 
-1. **CITATION** — every factual claim traces to `[[PAGE n]]` from the ToR, a user input, or a cited source (URL + access date). Otherwise `[FILL]`.
-2. **NO INVENTION** — never fabricate rates, experience, dates, names, client facts. Tools compute; the user decides.
-3. **CLIENT TEMPLATE WINS** — outputs restructure into the client's own forms via `template-filler`, never the reverse.
-4. **HONESTY (pricing)** — numbers only from the user's floor calculation or a cited benchmark. Never gut-feel.
-5. **NO FALSE PRECISION** — self-scores are coverage arithmetic over the published grid, always labeled as such. Never present an estimate as an evaluator's verdict.
+1. **CITATION** — every factual claim traces to `[[PAGE n]]` / `(p.X)` from the
+   ToR, a user input, or a cited source (URL + access date). Otherwise `[FILL]`.
+2. **NO INVENTION** — never fabricate rates, experience, dates, names, client
+   facts. Tools compute; the user decides. The tailored CV may only reorder and
+   rephrase the master CV — `cv-tailor lint` proves it line by line.
+3. **CLIENT TEMPLATE WINS** — outputs restructure into the client's own forms
+   via `template-filler`, never the reverse.
+4. **HONESTY (pricing)** — numbers only from the user's confirmed inputs
+   (their profile answer, or this bid's answers.json). Never gut-feel.
+5. **NO FALSE PRECISION** — simulator output is coverage arithmetic, never a
+   predicted evaluator score.
 
-If a step would force you to violate a rule, stop and tell the user what input is missing.
+If a step would force you to violate a rule, stop and tell the user what input
+is missing.
 
-## Pipeline
+## The bid pack conversation (default workflow)
 
-Work these steps in order. Paths assume a working directory for this bid
-(`--out-dir` defaults to `out/`). Read the ToR first; never quote it from memory.
+Paths assume `--dir <bid-dir>` (default `bid/`); artifacts live in
+`<bid-dir>/out/`. Read the ToR first; never quote it from memory.
 
-### 0. Extract the source
-
-```bash
-node bin/pdf-extract.mjs tor.pdf --out tor.txt --signals signals.json
-```
-
-- Scanned PDF → the tool exits 2 with OCR guidance; do not improvise page numbers.
-- `.docx` / `.xlsx` (ToR annexes, financial forms) also handled.
-- If the tool cannot parse, and only then, you may read the document yourself —
-  but every quote you take must carry the page it came from, and page numbers
-  must come from the document, not your guess.
-
-### 1. Structure the ToR
+### Phase 1 — Intake (all mechanical steps, one command)
 
 ```bash
-node bin/extract.mjs --tor tor.txt --json agent-fields.json --out-dir out
+node bin/bid-pack.mjs start --tor <tor.(pdf|docx|txt)> --cv <cv.(pdf|docx|txt)> --dir <bid-dir>
 ```
 
-- The regex pass is the fast path. For anything it missed (ambiguous layout,
-  criteria phrasing), YOU extract it verbatim into `agent-fields.json`
-  (`{"deadline": {"value": "...", "page": 4}, "evaluation": {"criteria": [{"label": "...", "weight": 30, "page": 5}], ...}}`)
-  — agent values are accepted only with page attribution, and conflicts are
-  recorded in `tor-extract.json`, never hidden.
-- Check `weightsSumCheck`. A mismatch is a clarification question, not a fix.
-- Outputs: `tor-extract.json`, `bid-screen.md` (with expected-value go/no-go
-  if the user supplies fee/bid-days/day-rate), `compliance-matrix.md`.
+Runs pdf-extract → extract (bid screen, compliance matrix) → cv-gap →
+cv-tailor build, then writes **`out/questions.md`**. Exit 2 on a scanned PDF →
+OCR first; never improvise page numbers.
 
-### 2. Client intelligence
+**Present the bid screen to the user** (deadline, effort, scoring, red flags).
+Go/no-go is THEIR call. If no-go: stop and say so.
+
+### Phase 2 — The ONE questionnaire (no scattered questions, ever)
+
+`out/questions.md` consolidates every open decision: pricing, availability,
+validity, draft `[FILL]`s, CV evidence. **Put all of them to the user in one
+message**, grouped. Never drip-feed questions and never answer one for the
+user. Then:
 
 ```bash
-node bin/dossier.mjs --client "UNOPS" --sector "M&E" --out client-dossier.md
+# write the answers verbatim:
+node bin/bid-pack.mjs apply --answers answers.json --dir <bid-dir>
 ```
 
-Fill the scaffold only from sources you can cite (search only when the user
-allows it; otherwise leave `[FILL]` rows for the user). Payment reputation
-feeds pricing contingency.
+`apply` runs pricing on the user's confirmed numbers, renders the financial
+proposal, records CV evidence + fill answers, and regenerates the open list.
+Repeat until `0 still open`.
 
-### 3. CV gap analysis
+### Phase 3 — Draft all four documents (you draft, tools gate)
+
+Write drafts to `<bid-dir>/` as `cover-letter.md`, `technical-proposal.md`
+(`cv-tailored.md` already exists from Phase 1; edit it only with master-CV
+material or user evidence answers).
+
+- **Cover letter** — structure in `assets/templates.md` (≤1 page: reference
+  block → understanding from Background/Objectives → fit mapped to JD
+  competencies → compliance declarations → availability). Then loop:
+  `node bin/cover-letter.mjs lint --draft <bid-dir>/cover-letter.md --cv <cv.txt> --gap <bid-dir>/out/cv-gap-report.md` until PASS.
+- **Technical response** — one section per scored criterion, highest weight
+  first, in the client's vocabulary. Extract sub-elements verbatim into
+  `sub-elements.json`, then loop:
+  `node bin/simulator.mjs --extract <bid-dir>/out/tor-extract.json --response <bid-dir>/technical-proposal.md --sub-elements sub-elements.json` until at-risk ≈ 0.
+  Present it as coverage arithmetic — never as a predicted score.
+- **Tailored CV** — verify:
+  `node bin/cv-tailor.mjs lint --cv <bid-dir>/out/cv-tailored.md --master <master-cv> --gap <bid-dir>/out/cv-gap-report.md --evidence <bid-dir>/out/cv-evidence.json`
+  GAP rows are never claimed; unanchored lines fail until the user supplies
+  evidence via the questionnaire.
+- **Financial proposal** — already rendered by `apply` from pricing.json
+  (md + xlsx, formulas visible). If the client supplied their own form:
+  `template-filler.mjs map/fill/check` restructures INTO it.
+
+### Phase 4 — Render, package, deliver
+
+Render each final document to PDF with your own document tooling (typography:
+`references/render-specs.md`). If no document tooling is available, add
+`--fallback-pdf` to the command below and the built-in renderer will produce
+plain, valid PDFs. Then:
 
 ```bash
-node bin/cv-gap.mjs --tor tor.txt --cv cv.txt --out cv-gap-report.md
+node bin/bid-pack.mjs pack --dir <bid-dir>
 ```
 
-Present the MATCH/GAP table to the user. GAP rows are never claimed anywhere
-downstream — if a JD skill is a GAP, it must not appear in the letter, and you
-must not soften this. Suggest CV reordering with the ToR's verbatim terminology.
+`pack` re-extracts the text from every rendered PDF/docx/xlsx and **re-runs the
+full audit on those bytes** — the gate applies to what the client will read.
+On pass it builds `pack/`, `submission-checklist.md`, `deadline.ics` and the
+zip. On fail it removes any stale pack so nothing half-finished can be
+submitted. Deliver the pack folder + checklist to the user.
 
-### 4. Market rates (research discipline)
+### After submission (opt-in, builds the moat)
 
-```bash
-node bin/market-rates.mjs scaffold --title "<title + ref>" --out market-rates-research.md
-node bin/market-rates.mjs position --your-rate 450 --benchmark-low 380 --benchmark-high 520 --currency USD
-```
-
-The scaffold has no numbers — the user (or a web search they approve) fills
-every row with source + date. `position` refuses a band where low ≥ high.
-
-### 5. Pricing — ⛔ GATE
-
-```bash
-node bin/pricing-model.mjs --base 400 --basis day --currency USD --loading 0.25 --contingency 0.10 --effort 20 --out-dir out
-```
-
-Do not run pricing until the user has confirmed base, loading and contingency
-as THEIR numbers. The tool prints every formula; hand the user `pricing.md`
-and keep `pricing.json` for template filling.
-
-### 6. Cover letter — draft, then lint
-
-Draft per `assets/templates.md` (≤1 page: reference block → understanding from
-Background/Objectives only → fit mapped to JD competencies → compliance
-declarations → availability per ToR start date). Then:
-
-```bash
-node bin/cover-letter.mjs lint --draft cover-letter.md --cv cv.txt --gap cv-gap-report.md
-```
-
-Fix every failure; loop until PASS. No superlatives, ever.
-
-### 7. Technical response — draft, then simulate
-
-Write one section per scored criterion (highest weight first), in the client's
-own vocabulary. Extract sub-elements verbatim from the criteria section into
-`sub-elements.json`, then loop:
-
-```bash
-node bin/simulator.mjs --extract out/tor-extract.json --response technical.md --sub-elements sub-elements.json
-```
-
-Rewrite until at-risk points ≈ 0. The report is coverage arithmetic — say so
-when presenting it; do not promise scores.
-
-### 8. Client's own forms
-
-```bash
-node bin/template-filler.mjs map --template financial-form.xlsx --data out/pricing.json
-node bin/template-filler.mjs fill --template financial-form.xlsx --data data.json --out out/financial-filled.xlsx
-node bin/template-filler.mjs check --template technical-template.docx --data data.json
-```
-
-Build `data.json` from `pricing.json` + `tor-extract.json` (labels must match
-the map output). `check` exits 1 while any required field is `[FILL]`.
-
-### 9. Audit — final gate
-
-```bash
-node bin/audit.mjs --proposal technical.md --extras cover-letter.md --matrix out/compliance-matrix.md
-```
-
-Exit 1 = do not submit. Fix hard fails ([FILL] leftovers, incomplete matrix
-rows); work the untraceable-claims review list.
-
-### 10. Record for the library
-
-After submission, record the bid under `library/bids/<ref-no>/` per
-`library/SCHEMA.md` (opt-in; outcome + feedback verbatim + rate band). This
-corpus is what eventually makes rate bands real data instead of guesses.
+Record the bid under `library/bids/<ref-no>/` per `library/SCHEMA.md`
+(outcome + client feedback verbatim + rate band). This corpus is what makes
+rate bands real data instead of guesses.
 
 ## Reference files — read on demand
 
-- `references/review-rules.md` — before showing the user any draft (checklist + banned superlatives).
-- `references/pricing-standards.md` — before step 5 (rate conventions, loading/contingency norms).
-- `references/packs/<donor>.md` — when the client is UNDP, World Bank, EU-PRAG or USAID: where their rules live, what to verify in the ToR.
-- `assets/templates.md` — structure templates for letter, technical response, compliance matrix rows, CV bullets.
+- `references/render-specs.md` — typography/structure for the four final PDFs.
+- `references/review-rules.md` — before showing the user any draft (checklist +
+  banned superlatives).
+- `references/pricing-standards.md` — before discussing rates (conventions,
+  loading/contingency norms).
+- `references/packs/<donor>.md` — when the client is UNDP, World Bank, EU-PRAG
+  or USAID: where their rules live, what to verify in the ToR.
+- `assets/templates.md` — letter, technical response, compliance rows, CV
+  bullet upgrade, clarification questions.
+
+## Advanced — step-by-step mode
+
+Every stage is still directly runnable (and exposed via MCP):
+
+```bash
+node bin/pdf-extract.mjs tor.pdf --out tor.txt            # 0. page-tagged text
+node bin/extract.mjs --tor tor.txt --out-dir out          # 1. screen + matrix
+node bin/dossier.mjs --client "UNOPS" --sector "M&E"      # 2. client intel
+node bin/cv-gap.mjs --tor tor.txt --cv cv.txt             # 3. MATCH / GAP
+node bin/market-rates.mjs scaffold --title "<t + ref>"    # 4a. research scaffold
+node bin/market-rates.mjs position --your-rate 450 ...    # 4b. band position
+node bin/pricing-model.mjs --base 400 --basis day ...     # 5. ⛔ gated on user
+node bin/cover-letter.mjs lint --draft letter.md --cv cv.txt  # 6. gate
+node bin/simulator.mjs --extract ... --response ...       # 7. coverage gate
+node bin/template-filler.mjs map|fill|check               # 8. client's forms
+node bin/audit.mjs --proposal final.md --matrix out/compliance-matrix.md  # 9. gate
+node bin/cv-tailor.mjs build | lint                       # CV generate/verify
+node bin/financial-proposal.mjs --pricing ... --extract ...   # financial doc
+node bin/render.mjs input.md --out output.pdf             # fallback PDFs
+node bin/package.mjs --dir <bid-dir> [--fallback-pdf]     # verify + zip
+node bin/profile.mjs init | set | get | path | erase      # consultant profile
+```
+
+`node bin/tor-to-proposal.mjs <command> --help` documents every one.
 
 ## What you must never do
 
 - Quote a ToR requirement without its page.
 - Fill a `[FILL]` with anything the user did not supply or approve.
-- Mention a GAP skill anywhere in the proposal.
+- Mention a GAP skill anywhere in the proposal or tailored CV.
+- Ask the user ten small questions when one consolidated questionnaire exists.
 - Let an unaudited draft leave the session marked "ready to submit".
 - Present simulator output as a predicted evaluation score.
+- Build the pack while any verification fails — `pack` won't let you either.

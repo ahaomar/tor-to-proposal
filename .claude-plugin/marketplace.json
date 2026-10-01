@@ -1,11 +1,13 @@
 {
   "name": "tor-to-proposal",
-  "owner": { "name": "Omar Farooq" },
+  "owner": {
+    "name": "Omar Farooq"
+  },
   "plugins": [
     {
       "name": "tor-to-proposal",
       "source": "./",
-      "description": "Turn UN/NGO/government ToRs into traceable, compliance-checked proposals: bid screen, CV gap, pricing, evaluation simulator, form filling, pre-submission audit."
+      "description": "ToR + CV in -> verified bid pack out: bid screen, consolidated questionnaire, tailored CV, cover letter lint, honest pricing, financial proposal, evaluation simulator, form filling, PDF packaging with a final honesty audit."
     }
   ]
 }

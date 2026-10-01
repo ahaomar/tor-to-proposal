@@ -179,6 +179,128 @@ const TOOLS = [
       ...(a.extras ? [].concat(a.extras).flatMap((e) => ['--extras', e]) : []), ...(a.report ? ['--report', a.report] : [])],
     script: 'audit.mjs',
   },
+  // ---------------- v2: the bid pack ----------------
+  {
+    name: 'profile_set',
+    description:
+      'One-time consultant profile (stored at ~/.tor-to-proposal/profile.json). Set dotted fields: identity.name, identity.credentials, identity.email, identity.phone, identity.title, identity.location, identity.nationality, identity.languages (comma string), rates.floor.annualIncome, rates.floor.billableDays, rates.floor.costLoading, rates.defaults.base/basis/loading/contingency/currency, cv.masterPath. Every value is USER-SUPPLIED — never guess one.',
+    inputSchema: S({
+      pairs: { type: 'array', items: { type: 'string' }, description: 'key=value pairs, e.g. "identity.name=Ayesha Khan", "rates.defaults.base=400"' },
+    }, ['pairs']),
+    argv: (a) => ['set', ...[].concat(a.pairs)],
+    script: 'profile.mjs',
+  },
+  {
+    name: 'profile_get',
+    description: 'Read the consultant profile (whole, or one dotted key). Returns an error if no profile exists — then offer to run profile_set with the user.',
+    inputSchema: S({ key: P('Optional dotted key, e.g. rates.defaults.base') }),
+    argv: (a) => ['get', ...(a.key ? [a.key] : [])],
+    script: 'profile.mjs',
+  },
+  {
+    name: 'bid_pack_start',
+    description:
+      'Bid pack step 1 — the one-shot intake. Runs pdf-extract -> extract (bid screen + compliance matrix) -> cv-gap -> cv-tailor on the given ToR + CV, then writes out/questions.md: the CONSOLIDATED questionnaire. Put every listed question to the user in ONE message; write their answers to answers.json; call bid_pack_apply.',
+    inputSchema: S({
+      tor: P('Absolute path to the ToR document (pdf/docx/xlsx/txt)'),
+      cv: P('Absolute path to the CV (pdf/docx/txt) — recommended'),
+      dir: P('Absolute bid directory (default: <tor-dir>/bid)'),
+      no_cv_tailor: { type: 'boolean', description: 'Skip the automatic tailored-CV draft' },
+    }, ['tor']),
+    argv: (a) => ['start', '--tor', a.tor, ...(a.cv ? ['--cv', a.cv] : []), '--dir', a.dir || path.join(path.dirname(a.tor), 'bid'),
+      ...(a.no_cv_tailor ? ['--no-cv-tailor'] : [])],
+    script: 'bid-pack.mjs',
+  },
+  {
+    name: 'bid_pack_apply',
+    description:
+      'Bid pack step 2 — record the user\'s answers (answers.json: {"Q-PRICING-BASE": 450, "Q-AVAILABILITY": "2026-11-01", ...}); runs pricing + financial proposal when pricing numbers are present, records CV evidence and draft-fill answers, and regenerates the open-question list. Repeat until 0 open.',
+    inputSchema: S({
+      answers: P('Absolute path to answers.json (flat map question-id -> answer)'),
+      dir: P('Absolute bid directory (the one used in bid_pack_start)'),
+    }, ['answers', 'dir']),
+    argv: (a) => ['apply', '--answers', a.answers, '--dir', a.dir],
+    script: 'bid-pack.mjs',
+  },
+  {
+    name: 'bid_pack_pack',
+    description:
+      'Bid pack final step — verifies every final document (cover letter, CV, technical, financial) by RE-EXTRACTING its text (PDF/docx/xlsx) and re-running the audit on those bytes, then builds pack/ + submission-checklist.md + deadline.ics + the zip. Exit 1 = do not submit. fallback_pdf renders md-only docs with the built-in renderer; prefer rendering with your own document tooling first.',
+    inputSchema: S({
+      dir: P('Absolute bid directory'),
+      fallback_pdf: { type: 'boolean', description: 'Render md-only docs to PDF with the built-in fallback renderer' },
+      no_zip: { type: 'boolean', description: 'Skip the zip' },
+    }, ['dir']),
+    argv: (a) => ['pack', '--dir', a.dir, ...(a.fallback_pdf ? ['--fallback-pdf'] : []), ...(a.no_zip ? ['--no-zip'] : [])],
+    script: 'bid-pack.mjs',
+  },
+  {
+    name: 'cv_tailor_build',
+    description:
+      'Build a ToR-tailored CV draft: reorders/selects master-CV bullets against the evaluation weights. Adds NO facts — every output line comes from the master CV. Then run cv_tailor_lint.',
+    inputSchema: S({
+      cv: P('Absolute path to the master CV (txt/md)'),
+      extract: P('Absolute path to tor-extract.json'),
+      profile: P('Optional absolute path to profile.json (identity block)'),
+      gap: P('Optional absolute path to cv-gap-report.md (GAP discipline)'),
+      out: P('Optional ' + ABS_OUT),
+      report: P('Optional ' + ABS_OUT),
+    }, ['cv', 'extract']),
+    argv: (a) => ['build', '--cv', a.cv, '--extract', a.extract, ...(a.profile ? ['--profile', a.profile] : []), ...(a.gap ? ['--gap', a.gap] : []), ...(a.out ? ['--out', a.out] : []), ...(a.report ? ['--report', a.report] : [])],
+    script: 'cv-tailor.mjs',
+  },
+  {
+    name: 'cv_tailor_lint',
+    description:
+      'Verify a tailored CV: every bullet must anchor to the master CV (token containment + all numbers preserved) or come from cv-evidence.json (user-input answers). GAP terms hard-fail. Exit 1 = fix before use.',
+    inputSchema: S({
+      cv: P('Absolute path to the tailored CV'),
+      master: P('Absolute path to the ORIGINAL master CV'),
+      gap: P('Optional absolute path to cv-gap-report.md'),
+      evidence: P('Optional absolute path to cv-evidence.json (user-input facts)'),
+      report: P('Optional ' + ABS_OUT),
+    }, ['cv', 'master']),
+    argv: (a) => ['lint', '--cv', a.cv, '--master', a.master, ...(a.gap ? ['--gap', a.gap] : []), ...(a.evidence ? ['--evidence', a.evidence] : []), ...(a.report ? ['--report', a.report] : [])],
+    script: 'cv-tailor.mjs',
+  },
+  {
+    name: 'financial_proposal',
+    description:
+      'Render the client-facing financial proposal (md + xlsx with visible formulas) from pricing.json + tor-extract.json. Numbers only from user-confirmed pricing; the internal floor math stays in pricing.md.',
+    inputSchema: S({
+      pricing: P('Absolute path to pricing.json'),
+      extract: P('Absolute path to tor-extract.json'),
+      context: P('Optional absolute path to bid-context.json (consultant, validity, reimbursables, taxes)'),
+      out_dir: P('Optional ' + ABS_OUT + ' (directory)'),
+      xlsx: { type: 'boolean', description: 'Also write financial-proposal.xlsx' },
+    }, ['pricing', 'extract']),
+    argv: (a) => ['--pricing', a.pricing, '--extract', a.extract, ...(a.context ? ['--context', a.context] : []), ...(a.out_dir ? ['--out-dir', a.out_dir] : []), ...(a.xlsx ? ['--xlsx'] : [])],
+    script: 'financial-proposal.mjs',
+  },
+  {
+    name: 'render_pdf',
+    description:
+      'Fallback renderer: markdown -> plain submittable PDF (headings, bullets, tables, page numbers). Use when no other document tooling is available; package_bid verifies whichever PDF it finds.',
+    inputSchema: S({
+      input: P('Absolute path to the markdown file'),
+      out: P(ABS_OUT),
+      footer: P('Optional footer text (the reference number works well)'),
+    }, ['input', 'out']),
+    argv: (a) => [a.input, '--out', a.out, ...(a.footer ? ['--footer', a.footer] : [])],
+    script: 'render.mjs',
+  },
+  {
+    name: 'package_bid',
+    description:
+      'Verify + package a finished bid directory: inventories the four documents, re-extracts rendered files and re-audits, writes pack-report.md, submission-checklist.md, deadline.ics, pack/ and the zip. Exit 0 = pack ready; exit 1 = do not submit.',
+    inputSchema: S({
+      dir: P('Absolute bid directory'),
+      fallback_pdf: { type: 'boolean', description: 'Render md-only docs with the built-in fallback renderer' },
+      no_zip: { type: 'boolean' },
+    }, ['dir']),
+    argv: (a) => ['--dir', a.dir, ...(a.fallback_pdf ? ['--fallback-pdf'] : []), ...(a.no_zip ? ['--no-zip'] : [])],
+    script: 'package.mjs',
+  },
 ];
 
 function callTool(name, args) {
@@ -200,7 +322,7 @@ function handle(msg) {
     return {
       protocolVersion: typeof params?.protocolVersion === 'string' ? params.protocolVersion : '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'tor-to-proposal', version: '1.0.0' },
+      serverInfo: { name: 'tor-to-proposal', version: '2.0.0' },
     };
   }
   if (typeof method === 'string' && method.startsWith('notifications/')) return undefined;

@@ -1,13 +1,27 @@
 {
   "name": "tor-to-proposal",
-  "version": "1.0.0",
-  "description": "Traceable ToR-to-proposal toolkit for UN / NGO / government consultants. Deterministic CLI + agent workflow. The bid tool that refuses to lie.",
+  "version": "2.0.0",
+  "description": "The bid tool that refuses to lie. ToR + CV in -> verified bid pack out: cover letter, tailored CV, technical response, financial proposal, submission checklist. Deterministic CLI + agent skill for UN / NGO / government consultants.",
   "type": "module",
   "bin": {
     "tor-to-proposal": "bin/tor-to-proposal.mjs"
   },
+  "files": [
+    "bin/",
+    "mcp/",
+    "commands/",
+    "assets/",
+    "references/",
+    "library/",
+    "docs/",
+    "SKILL.md",
+    "README.md",
+    "LICENSE",
+    ".claude-plugin/"
+  ],
   "scripts": {
-    "test": "node test/run-tests.mjs"
+    "test": "node test/run-tests.mjs",
+    "postinstall": "node -e \"console.log('tor-to-proposal installed. Run: tor-to-proposal init (one-time profile wizard).')\""
   },
   "engines": {
     "node": ">=18"
@@ -23,10 +37,21 @@
     "proposal",
     "un",
     "ungm",
+    "undp",
     "consultant",
     "tender",
     "bid",
-    "agent-skills"
+    "rfp",
+    "cover-letter",
+    "financial-proposal",
+    "cv",
+    "agent-skills",
+    "mcp"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahaomar/tor-to-proposal.git"
+  },
+  "homepage": "https://github.com/ahaomar/tor-to-proposal#readme",
   "license": "MIT"
 }

@@ -2,73 +2,89 @@
 
 **The bid tool that refuses to lie.**
 
-An agent skill + deterministic CLI that turns UN / NGO / government Terms of
-Reference (ToR), solicitations and RFPs into traceable, compliance-checked
-consultant proposals — go/no-go decision, compliance matrix, CV gap analysis,
-cover letter lint, honest pricing, evaluation-grid self-scoring, the client's
-own forms filled in, and a final pre-submission audit.
+ToR + CV in → **verified bid pack out** — customized cover letter, tailored CV,
+technical response, financial proposal, submission checklist — as PDFs, in
+minutes, for UN / NGO / government consultants.
 
 It does **not** write your evidence for you. Your track record wins bids; this
-tool guarantees your bid is complete, compliant, honestly priced, and scored
-against the published grid before you submit.
+tool guarantees your bid is complete, compliant, honestly priced, verified
+against the client's scoring grid, and audited **on the final rendered bytes**
+before you submit.
 
 ## Why it exists
 
-Every factual claim in any output must trace to a `[[PAGE n]]` reference in the
-source ToR, a user-supplied input, or a cited external source — otherwise it
-stays `[FILL]`. The app never fabricates rates, experience, dates, names or
-client facts. In a domain where one invented fact means disqualification (and
-vendor blacklisting), that is the feature, not a limitation.
+Every factual claim in any output must trace to a page in the source ToR, a
+user-supplied input, or a cited external source — otherwise it stays `[FILL]`.
+The tailored CV is proven line-by-line against your master CV. Pricing runs
+only on numbers you confirm. The app never fabricates rates, experience,
+dates, names or client facts. In a domain where one invented fact means
+disqualification (and vendor blacklisting), that is the feature, not a
+limitation.
 
-## Install
+## Install — one command, once
 
-Four ways to run it — pick by audience:
+```bash
+npx tor-to-proposal init
+```
 
-| You are… | Use | Setup |
+That sets up your consultant profile (name, credentials, rates, master CV) at
+`~/.tor-to-proposal/profile.json`. Then use it with any AI assistant (Claude
+Desktop / Claude Code / Codex / ChatGPT) via the MCP server at
+`mcp/server.mjs`, or install the agent skill:
+
+```bash
+npx skills add ahaomar/tor-to-proposal   # agent users
+```
+
+Local-first: no network calls carry your documents. The only optional outbound
+step is market-rate research you run yourself.
+
+## The workflow — ToR + CV in, bid pack out
+
+```bash
+tor-to-proposal bid-pack start  --tor tor.pdf --cv cv.txt --dir mybid/  # screen + gaps + draft CV
+tor-to-proposal bid-pack apply  --answers answers.json --dir mybid/    # your answers -> pricing + financials
+tor-to-proposal bid-pack pack   --dir mybid/                           # verify + checklist + zip
+```
+
+With an assistant, you never run these — you say *"run a bid pack on this
+folder"* and answer **one consolidated questionnaire**.
+
+| Phase | What happens | You decide |
 | --- | --- | --- |
-| Any consultant | **AI assistant + MCP** (Claude Desktop/Code, ChatGPT, Codex) | `npm install`, then point your assistant at `mcp/server.mjs` |
-| Claude Code user | **Plugin** (skill + `/tor-bid` … `/tor-audit` commands + MCP) | `/plugin marketplace add ahaomar/tor-to-proposal` → `/plugin install tor-to-proposal@tor-to-proposal` |
-| Agent user (skills.sh) | **Skill** | `npx skills add ahaomar/tor-to-proposal` |
-| Developer / CI | **CLI** | `git clone … && npm install` → `node bin/tor-to-proposal.mjs <command>` |
+| 1. Intake | ToR structured: deadline, effort, evaluation grid, compliance matrix, bid screen. CV gap analysis (MATCH / **GAP — do not claim**). Tailored CV drafted from your master CV. | Go / no-go |
+| 2. The one questionnaire | Every open item — pricing, availability, validity, missing evidence — in a single numbered list. `apply` turns answers into pricing + the financial proposal. | All of it |
+| 3. Drafts | Cover letter (lint-gated), technical response per scored criterion (coverage-simulated), tailored CV (anchor-verified), financial proposal (formulas visible). | Review |
+| 4. Pack | Every rendered PDF/docx/xlsx is **re-extracted and re-audited**; pack/ + submission-checklist.md + deadline.ics + zip. Stale packs are removed on failure. | Submit |
+
+The agent-facing master workflow lives in [SKILL.md](SKILL.md). Every stage is
+also directly runnable: `tor-to-proposal <command> --help` (17 commands).
 
 ## Guides
 
 | Guide | For |
 | --- | --- |
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Non-technical consultants — plain-language, step-by-step, what you'll see at every step |
-| [docs/PROMPT-GUIDE.md](docs/PROMPT-GUIDE.md) | Agent users — setup for Claude/ChatGPT/Codex/any agent + a copy-paste prompt library for each workflow step |
+| [docs/PROMPT-GUIDE.md](docs/PROMPT-GUIDE.md) | Agent users — setup for Claude/ChatGPT/Codex/any agent + a copy-paste prompt library for each phase |
 | [docs/TECHNICAL-GUIDE.md](docs/TECHNICAL-GUIDE.md) | Developers / IT — architecture, CLI reference, data contracts, MCP/plugin internals, extension points |
-
-## The workflow
-
-| Step | Command | Output |
-| --- | --- | --- |
-| 0. Extract source | `pdf-extract.mjs tor.pdf --out tor.txt` | page-tagged text + signals |
-| 1. Structure ToR | `extract.mjs --tor tor.txt --out-dir out` | tor-extract.json, bid screen (EV go/no-go), compliance matrix |
-| 2. Client intel | `dossier.mjs --client "UNOPS"` | research scaffold with source+date discipline |
-| 3. CV gaps | `cv-gap.mjs --tor tor.txt --cv cv.txt` | MATCH / GAP — do-not-claim table |
-| 4. Rate benchmarks | `market-rates.mjs scaffold` + `position` | cited band + BELOW/WITHIN/ABOVE advisory |
-| 5. Pricing ⛔ | `pricing-model.mjs --base … --basis day …` | every format, every formula, pricing.json |
-| 6. Cover letter | agent drafts → `cover-letter.mjs lint` | superlative/fill/name gates |
-| 7. Technical response | agent drafts per criterion → `simulator.mjs` | at-risk points vs published grid |
-| 8. Client's forms | `template-filler.mjs map/fill/check` | their .docx/.xlsx filled, formulas untouched |
-| 9. Audit | `audit.mjs --proposal … --matrix …` | hard-fail gate before submission |
-| 10. Record | `library/bids/<ref>/` per `library/SCHEMA.md` | your win/loss corpus |
-
-The agent-facing master workflow lives in [SKILL.md](SKILL.md).
 
 ## Trust
 
-Local-first. No network calls carry your documents, CVs or financials. Skill
-distribution (`npx skills add`) only fetches this repo. The only optional
-outbound step is market-rate research you run yourself.
+- Local-first. Nothing about your bid leaves your machine.
+- Honesty gates are mechanical, not aspirational: cover-letter lint,
+  CV anchor lint, pricing gate, simulator, template-filler (client's formulas
+  never touched), and a final audit that runs on the rendered bytes.
+- `pricing.md` / `pricing.json` contain your floor math — the pack builder
+  never includes them in what you submit.
 
 ## Development
 
 ```bash
 npm install
-npm test     # full suite: extract, pricing, rates, cv-gap, pdf-extract,
-             # cover-letter lint, simulator, template-filler (docx+xlsx), audit
+npm test     # 39 tests: extract, pricing, rates, cv-gap, cover-letter lint,
+             # simulator, template-filler (docx+xlsx), audit, profile,
+             # cv-tailor build/lint, financial proposal (md+xlsx), render
+             # round-trip, bid-pack start/apply/pack, MCP handshake
 ```
 
 Node ≥ 18. Dependencies (all local, all pure JS): `unpdf`, `mammoth`,

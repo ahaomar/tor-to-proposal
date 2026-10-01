@@ -19,13 +19,14 @@ Settings → Developer → Edit Config → add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "tor-to-proposal": {
-      "command": "node",
-      "args": ["/absolute/path/to/tor-to-proposal/mcp/server.mjs"]
+      "command": "npx",
+      "args": ["-y", "tor-to-proposal", "mcp-server"]
     }
   }
 }
 ```
-Restart the app. (Run `npm install` inside the tor-to-proposal folder first.)
+Or, if you cloned the repo: `"command": "node", "args": ["/absolute/path/to/tor-to-proposal/mcp/server.mjs"]`.
+Restart the app. Either way, run `npx tor-to-proposal init` once for your profile.
 
 ### Claude Code (terminal)
 ```bash
@@ -59,6 +60,9 @@ can drive this repo: give it the repo path and say *"follow SKILL.md in that
 folder"*. The SKILL.md is written to be followed by any capable agent.
 
 **Test any setup with:** *"List your tor-to-proposal tools."* → you should see
+twenty tools: `bid_pack_start`, `bid_pack_apply`, `bid_pack_pack`,
+`profile_set`, `profile_get`, `cv_tailor_build`, `cv_tailor_lint`,
+`financial_proposal`, `render_pdf`, `package_bid`, plus the classics:
 `pdf_extract`, `extract_tor`, `cv_gap`, `cover_letter_lint`,
 `market_rates_scaffold`, `market_rates_position`, `pricing_model`, `dossier`,
 `simulate`, `template_filler`, `audit`.
@@ -70,28 +74,43 @@ folder"*. The SKILL.md is written to be followed by any capable agent.
 Paste this, with your paths filled in:
 
 ```text
-I am bidding on a consultancy. Work through the tor-to-proposal pipeline
-(SKILL.md, steps 0–9) with me. My files:
+I am bidding on a consultancy. Run the full tor-to-proposal bid pack
+(SKILL.md) with me. My files:
 - ToR: /Users/me/bids/undp-2026-042/tor.pdf
-- CV: /Users/me/bids/undp-2026-042/cv.txt
+- CV:  /Users/me/bids/undp-2026-042/cv.txt
+- Bid folder: /Users/me/bids/undp-2026-042/bid
 
 Rules for you:
-- Keep every ToR fact traceable to a page; anything unverified becomes [FILL].
-- Never claim skills my CV lacks (the cv-gap GAP list is final).
-- Before ANY pricing math, stop and ask me for my base rate, loading and
-  contingency. Never propose a rate yourself.
+- Start with bid_pack_start, then show me the bid screen — I decide go/no-go.
+- Then put EVERY question from out/questions.md to me in ONE message. I answer
+  once; write my answers to answers.json and run bid_pack_apply. Repeat until
+  zero open. Never invent an answer, never ask questions one by one.
 - Drafts get linted/simulated/audited with the tools; fix and loop until they pass.
-- Start now with step 0 + 1 (extract + bid screen) and show me the go/no-go.
+- Finish with the four PDFs rendered per references/render-specs.md and
+  bid_pack_pack. Deliver pack/ + submission-checklist.md. Nothing is "done"
+  while pack exits non-zero.
 ```
 
-The assistant will run extraction, show the bid screen, and **stop to ask you
-questions at every gate**. Answer in plain English; it does the tool work.
+The assistant runs the mechanical pipeline, shows the bid screen, then asks
+**one consolidated questionnaire**. Answer in plain English; it does the tool
+work and writes `answers.json` for you.
 
 ---
 
 ## 3. Step-by-step prompt library
 
 Run them one at a time if you prefer control (recommended for your first bid).
+
+**The bid pack in three beats (recommended):**
+```text
+1. Start the bid pack on /path/tor.pdf + /path/cv.txt (bid_pack_start) and
+   walk me through the bid screen. Wait for my go/no-go.
+2. Give me the consolidated questionnaire (out/questions.md) — all questions,
+   numbered, one message. I'll answer inline; transcribe to answers.json and
+   run bid_pack_apply until zero open.
+3. Draft the cover letter + technical response, lint/simulate to PASS, then
+   render the four PDFs and run bid_pack_pack. Show me pack-report.md.
+```
 
 **Screen a ToR (go/no-go):**
 ```text

@@ -1,7 +1,9 @@
 {
   "name": "tor-to-proposal",
-  "description": "The bid tool that refuses to lie — turns UN/NGO/government ToRs into traceable, compliance-checked consultant proposals. Skills + slash commands + MCP tools.",
-  "version": "1.0.0",
-  "author": { "name": "Omar Farooq" },
+  "description": "The bid tool that refuses to lie \u2014 turns a ToR + CV into a complete, verified bid pack: cover letter, tailored CV, technical response, financial proposal, submission checklist. Skills + slash commands + MCP tools.",
+  "version": "2.0.0",
+  "author": {
+    "name": "Omar Farooq"
+  },
   "license": "MIT"
 }

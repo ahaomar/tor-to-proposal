@@ -54,6 +54,15 @@ formula overwrite) · **3** dependencies missing.
 
 | Command | Key options | Outputs |
 | --- | --- | --- |
+| `bid-pack start` | `--tor file [--cv file] [--dir bid/] [--no-cv-tailor]` | runs pdf-extract → extract → cv-gap → cv-tailor; `out/questions.{json,md}` (consolidated questionnaire), `out/bid-state.json`, `out/bid-context.json` |
+| `bid-pack apply` | `--answers answers.json [--dir bid/]` | records answers; runs pricing + financial proposal on user numbers; `out/cv-evidence.json`, `out/fill-answers.json`, `out/clarifications.md`; regenerates questions |
+| `bid-pack pack` | `--dir bid/ [--fallback-pdf] [--no-zip]` | delegates to `package` |
+| `profile` (`init`) | `init \| set k=v… \| get [k] \| path \| erase` | `~/.tor-to-proposal/profile.json` — user-supplied identity, floor math, rate defaults, master-CV path |
+| `cv-tailor build` | `--cv master.txt --extract tor-extract.json [--profile p.json] [--gap r.md]` | `cv-tailored.md` (reordered master-CV material only) + `cv-tailor-report.md` (trace + terminology mirror) |
+| `cv-tailor lint` | `--cv tailored.md --master master.txt [--gap] [--evidence cv-evidence.json]` | anchor table; exit 1 on unanchored bullets, altered numbers, GAP terms |
+| `financial-proposal` | `--pricing pricing.json --extract tor-extract.json [--context bid-context.json] [--xlsx]` | `financial-proposal.md` (+ `.xlsx` with visible formulas: `D8=B8*C8`, `D10=SUM`) |
+| `render` | `input.md --out out.pdf [--footer text]` | plain submittable PDF (fallback tier; pure JS, WinAnsi text layout) |
+| `package` | `--dir bid/ [--fallback-pdf] [--no-zip]` | re-extracts rendered PDF/docx/xlsx → re-runs audit on those bytes; `pack/` + `pack-report.md` + `submission-checklist.md` + `deadline.ics` + `<ref>-bid-pack.zip`; exit 1 removes stale packs |
 | `pdf-extract` | `file`, `--out`, `--signals`, `--allow-scanned` | `[[PAGE n]]`/`[[SHEET n]]` text; signals JSON (scannedLikely, hasEvaluationTable…) |
 | `extract` | `--tor`, `--json agent.json`, `--fee/--bid-days/--day-rate`, `--out-dir` | `tor-extract.json`, `bid-screen.md` (EV table), `compliance-matrix.md` |
 | `cv-gap` | `--tor`, `--cv`, `--out` | match table, MATCH / "GAP — do not claim" |
@@ -100,7 +109,36 @@ assignmentTotal}` — consumed by template-filler via a label-mapped `data.json`
 sub-element", …] }` — agent-extracted from the ToR; labels must match
 tor-extract criteria exactly.
 
-**Library** — `library/bids/<ref>/`: `tor-extract.json` (frozen),
+**v2 bid-pack contracts** (all under `<bid-dir>/out/`):
+
+- **`~/.tor-to-proposal/profile.json`** — `{identity{name,credentials,…},
+  rates{floor{annualIncome,billableDays,costLoading},
+  defaults{base,basis,currency,loading,contingency}}, cv{masterPath}}`.
+  Every value user-supplied (`profile set` validates numbers/ranges and the
+  master-CV path exists). This file is the "user input" trace source.
+- **`questions.json`** — `{generatedAt, dir, openCount, items:[{id, area,
+  type, question, why, default?, answer, answerSource}]}`. Ids are stable:
+  `Q-PRICING-BASE/LOADING/CONTINGENCY/CURRENCY`, `Q-PRICING-CONFIRM`,
+  `Q-EFFORT-DAYS`, `Q-AVAILABILITY`, `Q-VALIDITY`, `Q-FILL-CONSULTANT/
+  REIMBURSABLES/TAXES` (generated slots), `Q-FILL-<md5-8>` (draft fills —
+  hash of file+excerpt so a fixed draft drops its question),
+  `Q-CVE-<n>` (CV evidence), `Q-CLAR-*` (client clarifications).
+- **`answers.json`** (user-written via the agent) — flat `{id: value}`.
+- **`bid-context.json`** — derived: identity/consultantLine, refNo, title,
+  deadline, currency, availabilityDate, validity, reimbursables, taxes.
+  Input to financial-proposal and the pack checklist.
+- **`cv-evidence.json`** — `[{id, text, source:"user-input", deleted?}]` —
+  the ONLY way an unanchored line may enter the tailored CV.
+- **`fill-answers.json`** — `[{id, answer, source}]` — trace of draft-fill answers.
+- **`bid-state.json`** — `{steps:{torExtract,structured,cvGap,cvTailored,
+  questions,pricing:{status}}, createdAt, updatedAt}` — resumability.
+- **Pack outputs** — `<bid-dir>/pack/` (canonical names Cover-Letter.*,
+  CV.*, Technical-Proposal.*, Financial-Proposal.* + client forms +
+  submission-checklist.md + deadline.ics), `<bid-dir>/pack-report.md`,
+  `<bid-dir>/<ref>-bid-pack.zip`. `pricing.md`/`pricing.json` are NEVER
+  copied into the pack (floor math stays private).
+
+**`library`** — `library/bids/<ref>/`: `tor-extract.json` (frozen),
 `outcome.json`, `feedback.md`, `rate-band.json`. See `library/SCHEMA.md`;
 aggregation only at n ≥ 10 with n + date.
 
@@ -108,19 +146,22 @@ aggregation only at n ≥ 10 with n + date.
 
 `mcp/server.mjs` — dependency-free MCP **stdio** server (JSON-RPC 2.0,
 newline-delimited). Methods: `initialize`, `notifications/*`, `ping`,
-`tools/list` (11 tools), `tools/call`. Tool args are camelCase and mapped to
-CLI flags; array args flatten to repeated flags (`audit.extras`).
+`tools/list` (21 tools), `tools/call`. Tool args are camelCase and mapped to
+CLI flags; array args flatten to repeated flags (`audit.extras`,
+`profile_set.pairs`).
 `tools/call` results carry stdout + stderr and `isError: true` on any non-zero
 exit (a hard-fail gate therefore surfaces as a tool error the agent must read).
 Host cwd is not the repo: tool descriptions mandate absolute paths. Adding a
 tool = one entry in the `TOOLS` array (name, description, JSON-schema,
-`argv(a)` mapper, script).
+`argv(a)` mapper, script). `npx tor-to-proposal mcp-server` launches the same
+server for npx-installed users.
 
 ## 6. Claude Code plugin
 
 `.claude-plugin/plugin.json` + `marketplace.json` make the repo installable
 via `/plugin marketplace add`; `commands/*.md` are slash commands
-(`tor-bid`, `tor-screen`, `tor-cv`, `tor-price`, `tor-audit`) that reference
+(`tor-bid` — full bid pack, `tor-pack` — verify + package, `tor-screen`,
+`tor-cv`, `tor-price`, `tor-audit`) that reference
 `<plugin-root>` paths; `.mcp.json` registers the MCP server with
 `${CLAUDE_PLUGIN_ROOT}` so npm-installed binaries resolve inside the plugin.
 
@@ -138,12 +179,21 @@ via `/plugin marketplace add`; `commands/*.md` are slash commands
 
 ## 8. Testing
 
-`npm test` — zero test dependencies, spawns the real CLI (24 assertions):
+`npm test` — zero test dependencies, spawns the real CLI (39 tests):
 extraction + weights-sum, pricing arithmetic, band inversion rejection, CV-gap
 honesty, lint pass/fail, simulator at-risk math, docx/xlsx fill + formula
 preservation (verified by re-reading the filled files), audit gate, OCR path,
-and an MCP round-trip (handshake → tools/list → two tool calls). Fixtures in
-`test/fixtures/`; runtime binaries built into `test/.tmp/`.
+**profile set/get/erase + validation rejections (isolated $HOME), cv-tailor
+build + lint (honest pass; invented number, GAP term, and evidence-rescued
+lines), financial proposal md+xlsx formulas, the pure-JS PDF renderer
+(round-tripped through unpdf, multipage), the full bid-pack lifecycle
+(start → questions → apply → pricing → pack happy path), the pack failure
+path ([FILL] survives rendering → exit 1 + stale pack removal), the profile
+one-keystroke confirm path, and an MCP round-trip (handshake → tools/list
+with all 10 v2 tools → profile_set/get → audit hard-fail as isError)**.
+Fixtures in `test/fixtures/`; runtime binaries built into `test/.tmp/`;
+profile-dependent tests run with `$HOME` pointed at the temp dir so a real
+profile is never touched.
 
 ## 9. Trust model
 
@@ -155,3 +205,7 @@ and an MCP round-trip (handshake → tools/list → two tool calls). Fixtures in
   dated.
 - The gates are the guarantee: a draft that skips lint/simulate/audit is, by
   definition, not produced by this workflow.
+- The pack gate applies to the **rendered bytes**: `package.mjs` re-extracts
+  the text of every final PDF/docx/xlsx and re-runs the audit on that text, so
+  what is verified is what the client reads. On failure the previous pack/ and
+  zip are deleted — a stale pack can never survive next to a failing bid.
