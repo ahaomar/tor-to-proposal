@@ -193,6 +193,70 @@ you will ever own.
 
 ---
 
+## 6b. How to answer the questions (`out/questions.md` → `answers.json`)
+
+After `bid-pack start`, the tool writes **`out/questions.md`** — a numbered
+table of everything it cannot decide for you (your price confirmation, effort
+days, availability date, and every `[FILL]` placeholder it found).
+
+**You do not edit questions.md itself.** You answer in one of two ways:
+
+### Way 1 (easiest): reply to your AI assistant
+questions.md ends with the exact instruction. Just type your numbered answers
+in the chat, e.g.:
+
+```
+1. yes
+2. 25 person-days
+3. 1 November 2026
+4. 90 days from submission
+```
+
+The assistant writes them into `answers.json` for you and runs
+`bid-pack apply`.
+
+### Way 2 (by hand): write answers.json yourself
+Create a file called `answers.json` **in your bid folder** (next to
+`tor.pdf`). It is a simple JSON object: **question ID → your answer**.
+Copy the IDs exactly from `out/questions.json` or the **bold** codes in
+questions.md. A complete sample:
+
+```json
+{
+  "Q-PRICING-CONFIRM": "yes",
+  "Q-EFFORT-DAYS": "25 person-days",
+  "Q-AVAILABILITY": "1 November 2026",
+  "Q-VALIDITY": "90 days from submission",
+  "Q-FILL-TAXES": "Prices exclude VAT; consultant is registered with FBR.",
+  "Q-FILL-REIMBURSABLES": "Travel and interpretation costs are reimbursable at cost against receipts.",
+  "Q-CVE-1": "Led three UNDP M&E assignments (2022–2025) as team lead.",
+  "Q-CLAR-1": "Requested the final evaluation grid by email on 3 Oct 2026."
+}
+```
+
+What the special IDs mean:
+
+| ID pattern | Meaning | What to answer |
+| --- | --- | --- |
+| `Q-PRICING-CONFIRM` | Your saved profile rate offered for this bid | `yes` to use it, or new numbers: `"base 420 loading 0.25 contingency 0.1"` |
+| `Q-EFFORT-DAYS` | Person-days you will quote | e.g. `"25 person-days"` |
+| `Q-AVAILABILITY` | When you can start | any honest date |
+| `Q-VALIDITY` | How long your offer stays valid | e.g. `"90 days from submission"` |
+| `Q-FILL-...` | A `[FILL]` box in a draft document | the real fact that belongs there |
+| `Q-CVE-n` | A CV line needs proof (or removal) | the true fact, or `"delete"` |
+| `Q-CLAR-n` | Something to ask the CLIENT | what you asked them and when |
+
+Then run:
+
+```bash
+npx tor-to-proposal bid-pack apply --answers answers.json --dir .
+```
+
+`apply` re-prints the questionnaire — repeat until it says **0 open
+questions**, then run `bid-pack pack`.
+
+---
+
 ## 7. If something goes wrong
 
 | What you see | What it means | What to do |
