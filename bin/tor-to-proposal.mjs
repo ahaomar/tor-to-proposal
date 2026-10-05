@@ -39,14 +39,14 @@ const DESCRIPTIONS = {
   audit: 'pre-submission hard-fail gate',
   render: 'fallback markdown -> PDF emitter (no document tooling needed)',
   package: 'verify final docs (re-extract + re-audit) -> pack/ + checklist + zip',
-  'bid-pack': 'one-shot orchestrator: start | apply | pack + the consolidated questionnaire',
+  'bid-pack': 'one-shot orchestrator: start | ask | apply | pack + the consolidated questionnaire',
   profile: 'consultant profile wizard (.tor-to-proposal/profile.json in the current folder)',
   init: 'alias for profile — one-time setup wizard',
 };
 
 const [cmd, ...rest] = process.argv.slice(2);
 if (!cmd || cmd === 'help' || cmd === '--help') {
-  process.stdout.write(`tor-to-proposal — the bid tool that refuses to lie.\n\nUsage: tor-to-proposal <command> [options]\n\nQuick start (plug and play):\n  tor-to-proposal init                        one-time profile + setup wizard\n  tor-to-proposal bid-pack start --tor tor.pdf --cv cv.txt --dir mybid/\n  tor-to-proposal bid-pack apply --answers answers.json --dir mybid/\n  tor-to-proposal bid-pack pack --dir mybid/ --fallback-pdf\n\nCommands:\n${Object.keys(TOOLS).map((k) => `  ${k.padEnd(19)} ${DESCRIPTIONS[k]}`).join('\n')}\n\nPer-command help: tor-to-proposal <command> --help\nAgent workflow: see SKILL.md\n`);
+  process.stdout.write(`tor-to-proposal — the bid tool that refuses to lie.\n\nUsage: tor-to-proposal <command> [options]\n\nQuick start (plug and play):\n  tor-to-proposal init                        one-time profile + setup wizard\n  tor-to-proposal bid-pack start --tor tor.pdf --cv cv.txt --dir mybid/\n  tor-to-proposal bid-pack ask --dir mybid/   answer open questions interactively\n  tor-to-proposal bid-pack pack --dir mybid/ --fallback-pdf\n\nCommands:\n${Object.keys(TOOLS).map((k) => `  ${k.padEnd(19)} ${DESCRIPTIONS[k]}`).join('\n')}\n\nPer-command help: tor-to-proposal <command> --help\nAgent workflow: see SKILL.md\n`);
   process.exit(cmd ? 0 : 1);
 }
 if (!TOOLS[cmd]) {

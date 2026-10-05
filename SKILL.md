@@ -82,9 +82,13 @@ Go/no-go is THEIR call. If no-go: stop and say so.
 ### Phase 2 — The ONE questionnaire (no scattered questions, ever)
 
 `out/questions.md` consolidates every open decision: pricing, availability,
-validity, draft `[FILL]`s, CV evidence. **Put all of them to the user in one
-message**, grouped. Never drip-feed questions and never answer one for the
-user. Then:
+validity, draft `[FILL]`s, CV evidence. Two routes, in order of preference:
+
+1. **Interactive wizard (non-technical users):** `node bin/bid-pack.mjs ask
+   --dir <bid-dir>` — asks each open question in the terminal, saves
+   answers.json and applies it. Run again; it only asks what is still open.
+2. **Assistant-mediated:** put all questions to the user in one message,
+   never answer one for the user, then:
 
 ```bash
 # write the answers verbatim:

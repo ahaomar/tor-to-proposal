@@ -5,6 +5,9 @@
 //
 //   start  --tor <file> [--cv <file>] [--dir bid/]   extract + screen + cv-gap
 //          + cv-tailor build + profile import -> questions.json/questions.md
+//   ask    [--dir bid/]                              interactive wizard: answers
+//          the open questions one at a time in the terminal, writes answers.json
+//          and applies them (no editor or JSON knowledge needed)
 //   apply  --answers answers.json [--dir bid/]       store answers, run pricing,
 //          record evidence + fill answers, regenerate the open-question list
 //   pack   [--dir bid/] [--fallback-pdf] [--no-zip]  verify + audit + zip (-> package.mjs)
@@ -14,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import readline from 'node:readline/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { fail, parseArgs, readText, writeOut, helpText, mdTable } from './lib.mjs';
@@ -21,19 +25,23 @@ import { loadProfile, profilePath } from './profile.mjs';
 
 const HELP = helpText('bid-pack', [
   'start  --tor <file.(pdf|docx|txt)> [--cv <file>] [--dir bid/] [--profile] [--no-cv-tailor]',
+  'ask    [--dir bid/]',
   'apply  --answers answers.json [--dir bid/]',
   'pack   [--dir bid/] [--fallback-pdf] [--no-zip]',
   '',
   'start runs every mechanical step (pdf-extract -> extract -> cv-gap -> cv-tailor)',
   'and consolidates ALL open questions into out/questions.md. Answer them in one go,',
   'have your assistant write answers.json, then apply. Repeat apply until 0 open.',
+  'ask is the human-friendly route: an interactive wizard that asks each open',
+  'question in the terminal (Enter = suggested default, "back" to redo, "quit" to',
+  'cancel), saves answers.json and applies it — no editor or JSON needed.',
   'pack verifies the final documents (re-extract + re-audit) and builds the zip.',
 ]);
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const args = parseArgs(process.argv.slice(2));
 const cmd = args._[0];
-if (args.__help || !['start', 'apply', 'pack'].includes(cmd)) {
+if (args.__help || !['start', 'ask', 'apply', 'pack'].includes(cmd)) {
   process.stdout.write(HELP);
   process.exit(args.__help ? 0 : 1);
 }
@@ -238,7 +246,11 @@ function start() {
 
 // ---------------- apply ----------------
 function apply() {
-  if (!args.answers) { process.stdout.write(HELP); process.exit(1); }
+  if (!args.answers) {
+    process.stdout.write(HELP);
+    process.stdout.write(`\nTip: run "bid-pack ask --dir ${dir}" to answer the open questions interactively in this terminal — no JSON file needed.\n`);
+    process.exit(1);
+  }
   const answersPath = path.resolve(String(args.answers));
   const answers = JSON.parse(readText(answersPath, '--answers'));
   const qPath = inDir('questions.json');
@@ -335,6 +347,85 @@ function apply() {
   );
 }
 
+// ---------------- ask (interactive question wizard) ----------------
+async function askWizard() {
+  const qPath = inDir('questions.json');
+  if (!qPath) fail(`no questions.json in ${dir}/out — run: bid-pack start --tor <file> --dir ${dir}`, 2);
+  const q = JSON.parse(fs.readFileSync(qPath, 'utf8'));
+  const yours = q.items.filter((i) => i.type !== 'client');
+  const clients = q.items.filter((i) => i.type === 'client');
+  if (!yours.length) {
+    process.stdout.write(
+      (clients.length
+        ? `Nothing for you to answer here — but send these to the CLIENT before the cutoff:\n${clients.map((c) => `- ${c.question}`).join('\n')}\n`
+        : 'No open questions — everything is already resolved.\n') +
+        (inDir('pricing.json') ? `\nNext: bid-pack pack --dir ${dir} [--fallback-pdf]\n` : '')
+    );
+    return;
+  }
+
+  // Same terminal behavior as the profile wizard: interactive when run by a
+  // human; piped lines are consumed in order (automation/tests).
+  const piped = !process.stdin.isTTY;
+  let pipedLines = [];
+  if (piped) {
+    try {
+      const raw = fs.readFileSync(0, 'utf8');
+      pipedLines = raw.trim() ? raw.split('\n').map((l) => l.trim()) : [];
+    } catch { /* empty stdin */ }
+  }
+  let pipedPos = 0;
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const askLine = async (prompt) => {
+    if (piped) return pipedPos < pipedLines.length ? pipedLines[pipedPos++] : 'EOF';
+    try {
+      return (await rl.question(prompt)).trim();
+    } catch (err) {
+      if (err && (err.code === 'ABORT_ERR' || err.name === 'AbortError')) return 'EOF';
+      throw err;
+    }
+  };
+
+  process.stdout.write(
+    `Bid questions — ${yours.length} to answer, one at a time.\n` +
+      'Press Enter to accept the [suggested] value when one is shown. Type "back" to redo the previous question, "quit" to cancel.\n\n'
+  );
+
+  const answers = {};
+  let i = 0;
+  while (i < yours.length) {
+    const item = yours[i];
+    const cur = item.default !== undefined && item.default !== null ? String(item.default) : '';
+    const tail = item.unit ? ` (${item.unit})` : '';
+    const a = await askLine(`(${i + 1}/${yours.length}) ${item.question}${tail}${cur ? ` [${cur}]` : ''}\n> `);
+    if (a === 'EOF' || a.toLowerCase() === 'quit') {
+      rl.close();
+      process.stdout.write('\nCancelled — nothing was saved. (Your documents are untouched; run bid-pack ask again anytime.)\n');
+      return;
+    }
+    if (a.toLowerCase() === 'back') {
+      if (i === 0) { process.stdout.write('  (already at the first question)\n'); continue; }
+      const prev = yours[i - 1];
+      delete answers[prev.id];
+      i -= 1;
+      continue;
+    }
+    if (a === '' && cur === '') {
+      process.stdout.write('  This one needs an answer from you (no suggested default). Type it, or "quit" to stop.\n');
+      continue;
+    }
+    answers[item.id] = a === '' ? item.default : a;
+    i += 1;
+  }
+  rl.close();
+
+  const answersPath = path.join(dir, 'answers.json');
+  fs.writeFileSync(answersPath, JSON.stringify(answers, null, 2));
+  process.stdout.write(`\nSaved your ${Object.keys(answers).length} answer(s) to ${answersPath}\nApplying them now...\n\n`);
+  args.answers = answersPath;
+  apply();
+}
+
 // ---------------- pack ----------------
 function pack() {
   const passThrough = ['--dir', dir, ...(args['fallback-pdf'] ? ['--fallback-pdf'] : []), ...(args['no-zip'] ? ['--no-zip'] : []), ...(args.profile ? ['--profile', String(args.profile)] : [])];
@@ -343,5 +434,6 @@ function pack() {
 }
 
 if (cmd === 'start') start();
+else if (cmd === 'ask') await askWizard();
 else if (cmd === 'apply') apply();
 else pack();

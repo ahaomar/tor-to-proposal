@@ -432,6 +432,21 @@ t('bid-pack: profile numbers offered as one-keystroke confirm', () => {
   eq(p.quoteFloorDay, 550, 'floor from confirmed profile numbers');
   runE('profile.mjs', ['erase'], { expect: 0 });
 });
+t('bid-pack ask: interactive wizard answers open questions and applies them', () => {
+  runE('profile.mjs', ['set', 'identity.name=Fatima Rahman', 'identity.credentials=PhD', 'rates.defaults.base=400', 'rates.defaults.loading=0.25', 'rates.defaults.contingency=0.1'], { expect: 0 });
+  runE('bid-pack.mjs', ['start', '--tor', F('tor.txt'), '--cv', F('cv.txt'), '--dir', 'bid3'], { expect: 0 });
+  const q = JSON.parse(fs.readFileSync(path.join(TMP, 'bid3/out/questions.json'), 'utf8'));
+  const expected = q.items.filter((i) => i.type !== 'client');
+  // one piped answer per open non-client question; confirm gets "yes"
+  const reply = expected.map((i) => (i.id === 'Q-PRICING-CONFIRM' ? 'yes' : i.id === 'Q-AVAILABILITY' ? '2026-11-01' : i.id === 'Q-EFFORT-DAYS' ? '25 person-days' : i.default != null ? '' : 'N/A'));
+  const r = spawnSync(process.execPath, [path.join(BIN, 'bid-pack.mjs'), 'ask', '--dir', 'bid3'], { encoding: 'utf8', cwd: TMP, env: HOME_ENV, input: reply.join('\n') + '\n' });
+  eq(r.status, 0, `ask exit (${r.stderr})`);
+  const saved = JSON.parse(fs.readFileSync(path.join(TMP, 'bid3/answers.json'), 'utf8'));
+  ok(Object.keys(saved).length >= expected.length, `answers.json covers the questions (${Object.keys(saved).length}/${expected.length})`);
+  includes(r.stdout, 'Applying them now', 'wizard applies the answers');
+  includes(r.stdout, 'recorded', 'apply ran');
+  runE('profile.mjs', ['erase'], { expect: 0 });
+});
 
 // ---- v2: router lists new commands ----
 t('router: v2 commands listed, init alias dispatches to profile', () => {

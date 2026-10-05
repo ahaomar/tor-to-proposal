@@ -127,7 +127,8 @@ async function wizard() {
   let pipedLines = [];
   if (piped) {
     try {
-      pipedLines = fs.readFileSync(0, 'utf8').split('\n').map((l) => l.trim());
+      const raw = fs.readFileSync(0, 'utf8');
+      pipedLines = raw.trim() ? raw.split('\n').map((l) => l.trim()) : [];
     } catch { /* empty stdin -> quit below */ }
   }
   let pipedPos = 0;

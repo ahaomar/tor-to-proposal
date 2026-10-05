@@ -199,9 +199,21 @@ After `bid-pack start`, the tool writes **`out/questions.md`** — a numbered
 table of everything it cannot decide for you (your price confirmation, effort
 days, availability date, and every `[FILL]` placeholder it found).
 
-**You do not edit questions.md itself.** You answer in one of two ways:
+**You do not edit questions.md itself.** You answer in one of three ways:
 
-### Way 1 (easiest): reply to your AI assistant
+### Way 1 (easiest, no editor needed): the terminal wizard
+
+```bash
+npx tor-to-proposal bid-pack ask --dir .
+```
+
+It asks every open question **one at a time, right in the Terminal** — exactly
+like the `init` wizard. Press Enter to accept a suggested value, type `back`
+to redo the previous question, `quit` to stop. At the end it saves your
+answers and applies them automatically. Run it again anytime; it only asks
+what is still open.
+
+### Way 2: reply to your AI assistant
 questions.md ends with the exact instruction. Just type your numbered answers
 in the chat, e.g.:
 
@@ -215,7 +227,7 @@ in the chat, e.g.:
 The assistant writes them into `answers.json` for you and runs
 `bid-pack apply`.
 
-### Way 2 (by hand): write answers.json yourself
+### Way 3 (by hand): write answers.json yourself
 Create a file called `answers.json` **in your bid folder** (next to
 `tor.pdf`). It is a simple JSON object: **question ID → your answer**.
 Copy the IDs exactly from `out/questions.json` or the **bold** codes in
