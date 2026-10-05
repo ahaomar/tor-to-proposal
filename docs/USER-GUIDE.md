@@ -44,6 +44,16 @@ Gather these into one folder on your computer (e.g. `Documents/bids/UNDP-2026-04
 | 3 | Your **money numbers** | Your minimum acceptable yearly income, your monthly costs (for pricing) |
 | 4 | Your **calendar** | So you can honestly answer "can I start when they need me?" |
 
+**Who produces what — important:** the tool prepares, verifies, and packages. It deliberately does not write two documents for you:
+
+| Document | Who produces it |
+| --- | --- |
+| Bid screen, CV gap report, tailored CV, financial proposal, pricing | **The tool** — fully automatic |
+| **Cover letter** and **technical proposal** | **You + your AI assistant** draft them (the tool gives you the template in `assets/templates.md`, the ToR extract, and your tailored CV; the tool then lints and audits every line) |
+| Answers to the bid questions (price, dates, facts) | **You** — via the `bid-pack ask` wizard |
+
+A submission can never be packaged while anything is missing — the `pack` gate will list exactly what is absent.
+
 ---
 
 ## 3. How you use it (one conversation)

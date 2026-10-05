@@ -322,7 +322,7 @@ function handle(msg) {
     return {
       protocolVersion: typeof params?.protocolVersion === 'string' ? params.protocolVersion : '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'tor-to-proposal', version: '2.1.6' },
+      serverInfo: { name: 'tor-to-proposal', version: '2.1.7' },
     };
   }
   if (typeof method === 'string' && method.startsWith('notifications/')) return undefined;

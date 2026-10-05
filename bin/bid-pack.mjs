@@ -240,6 +240,21 @@ function start() {
   const torAbs = path.resolve(String(args.tor));
   if (!fs.existsSync(torAbs)) fail(`--tor not found: ${torAbs}`, 2);
 
+  process.stdout.write(
+    `# Inputs checklist — what this bid needs from you\n\n` +
+      `HAVE NOW (verified before anything runs):\n` +
+      `  [x] ToR document — ${path.basename(torAbs)}\n` +
+      `  ${args.cv ? `[x] Master CV — ${path.basename(String(args.cv))}` : `[ ] Master CV — NOT provided (add --cv <file>; the tailored CV and CV gap report will be skipped without it)`}\n\n` +
+      `PRODUCED BY THE TOOL (automatic): bid screen, compliance matrix, CV gap report,\n` +
+      `  tailored CV, pricing, financial proposal, final PDFs + zip.\n\n` +
+      `PRODUCED BY YOU + YOUR AI ASSISTANT (the tool drafts nothing in your name, then\n` +
+      `  verifies every line — this is the honesty rule):\n` +
+      `  [ ] Cover letter (template: assets/templates.md) — needed before pack\n` +
+      `  [ ] Technical proposal (one section per scored criterion/deliverable) — needed before pack\n` +
+      `  [ ] Your answers to the bid questions — via: bid-pack ask --dir ${dir}\n\n` +
+      `You will see this exact checklist again at pack time; nothing can be packaged while a box is open.\n\n`
+  );
+
   // 0. ToR -> page-tagged text
   run('pdf-extract.mjs', [torAbs, '--out', path.join(outDir, 'tor.txt'), '--signals', path.join(outDir, 'tor-signals.json')], { fatal: true, label: 'pdf-extract (ToR)' });
   state.steps.torExtract = { status: 'done' };
