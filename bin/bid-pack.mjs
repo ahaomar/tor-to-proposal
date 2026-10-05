@@ -152,6 +152,21 @@ function writeQuestions(q) {
   writeOut(path.join(outDir, 'questions.md'), md);
 }
 
+// Human-readable PDF companions for the working files a non-technical user is
+// most likely to be pointed at (regenerated after start/apply; the .md stays
+// the source of truth — the PDFs are for reading, not editing).
+function renderPreviews() {
+  for (const [file, label] of [
+    ['bid-screen.md', 'Bid-Screen'],
+    ['questions.md', 'Questions'],
+    ['cv-gap-report.md', 'CV-Gap-Report'],
+    ['cv-tailor-report.md', 'CV-Tailor-Report'],
+  ]) {
+    if (!inDir(file)) continue;
+    run('render.mjs', [path.join(outDir, file), '--out', path.join(outDir, 'preview', `${label}.pdf`), '--footer', `preview of out/${file} — the .md file is the source of truth`], { label: `render preview ${label}` });
+  }
+}
+
 // ---------------- context ----------------
 function writeContext() {
   const extractPath = inDir('tor-extract.json');
@@ -222,6 +237,7 @@ function start() {
   writeQuestions(q);
   state.steps.questions = { status: 'done', open: q.openCount };
   writeState(state);
+  renderPreviews();
 
   // report
   const extract = JSON.parse(fs.readFileSync(path.join(outDir, 'tor-extract.json'), 'utf8'));
@@ -234,7 +250,8 @@ function start() {
       `- bid-screen.md — go/no-go decision (the USER decides; read it together)\n` +
       `- compliance-matrix.md, tor-extract.json\n` +
       (args.cv ? `- cv-gap-report.md, cv-tailored.md (+ report)\n` : '') +
-      `- questions.json / questions.md — **${q.items.length} open question(s)**\n\n` +
+      `- questions.json / questions.md — **${q.items.length} open question(s)**\n` +
+      `- preview/ — readable PDFs of the bid screen + questionnaire (just double-click)\n\n` +
       `## Next\n1. Review bid-screen.md with the user. No-go -> stop here.\n` +
       `2. Put every open question to the user IN ONE MESSAGE (questions.md has them).\n` +
       `3. Write answers.json {"Q-...": value, ...} -> bid-pack apply --answers answers.json --dir ${dir}\n` +
@@ -338,6 +355,7 @@ function apply() {
   state.steps.questions = { status: 'done', open: fresh.openCount };
   state.steps.pricing = { status: inDir('pricing.json') ? 'done' : 'awaiting-user-numbers' };
   writeState(state);
+  renderPreviews();
 
   process.stdout.write(
     `# Apply: ${applied} answer(s) recorded, ${fresh.openCount} still open\n\n` +

@@ -298,6 +298,9 @@ questions**, then run `bid-pack pack`.
 - **Master CV** — your full, real CV. The tailored one is derived from it and
   verified against it.
 - **`[FILL]`** — a yellow flag meaning "a real fact goes here — yours".
+- **`out/preview/`** — readable PDF copies of the bid screen, the questions
+  and the CV reports, regenerated after every `start` and `apply`. Double-click
+  to read them; the `.md` originals are the working files the tool edits.
 - **Floor rate** — the lowest daily rate that still pays your bills. Below it,
   you're paying the client.
 - **MCP / skill / plugin** — three plumbing formats for connecting the tool to
