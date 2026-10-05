@@ -139,6 +139,29 @@ function buildQuestions() {
   return { generatedAt: new Date().toISOString(), dir: dir, openCount: items.length, items };
 }
 
+// Per-question "how to answer" hint, shown in the wizard prompt and the
+// questions table so users know the accepted format before replying.
+function answerFormat(item) {
+  switch (item.id) {
+    case 'Q-PRICING-CONFIRM': return 'type yes to use the saved rates — or new numbers like: base 420 loading 0.25 contingency 0.1';
+    case 'Q-PRICING-BASE': return 'a number, e.g. 400';
+    case 'Q-PRICING-LOADING': return 'a decimal, e.g. 0.25 (= 25%)';
+    case 'Q-PRICING-CONTINGENCY': return 'a decimal, e.g. 0.10 (= 10%)';
+    case 'Q-PRICING-CURRENCY': return 'a currency code, e.g. USD';
+    case 'Q-EFFORT-DAYS': return 'a number of person-days, e.g. 25';
+    case 'Q-AVAILABILITY': return 'a date, e.g. 1 November 2026';
+    case 'Q-VALIDITY': return 'a phrase, e.g. 90 days from submission';
+    case 'Q-FILL-CONSULTANT': return 'the consultant name as it should appear in the document';
+    case 'Q-FILL-REIMBURSABLES': return 'a sentence about which costs are reimbursable';
+    case 'Q-FILL-TAXES': return 'a sentence about your tax status';
+  }
+  if (item.id.startsWith('Q-CVE-')) return 'the exact true wording that supports the line — or DELETE to remove the line';
+  if (item.type === 'number') return `a number${item.unit ? ` in ${item.unit}` : ''}`;
+  if (item.type === 'date') return 'a date, e.g. 1 November 2026';
+  if (item.type === 'confirm') return 'yes or no';
+  return 'a short sentence';
+}
+
 function writeQuestions(q) {
   fs.writeFileSync(path.join(outDir, 'questions.json'), JSON.stringify(q, null, 2));
   const yours = q.items.filter((i) => i.type !== 'client');
@@ -147,7 +170,7 @@ function writeQuestions(q) {
   const intro = `Reply with the numbered answers; your assistant writes them to answers.json and runs:\n\n    tor-to-proposal bid-pack apply --answers answers.json --dir ${dir}\n`;
   const md =
     `# Bid questions — answer these in one go\n\n` +
-    (yours.length ? intro + '\n' + mdTable(['#', 'Question', 'Why it is asked'], yours.map((i) => [++n, `**${i.id}** — ${i.question}${i.default !== undefined && i.default !== null ? ` (default: ${i.default})` : ''}`, i.why || ''])) + '\n' : 'None — everything mechanical is resolved.\n') +
+    (yours.length ? intro + '\n' + mdTable(['#', 'Question', 'How to answer', 'Why it is asked'], yours.map((i) => [++n, `**${i.id}** — ${i.question}${i.default !== undefined && i.default !== null ? ` (default: ${i.default})` : ''}`, answerFormat(i), i.why || ''])) + '\n' : 'None — everything mechanical is resolved.\n') +
     (clients.length ? `\n## To send to the CLIENT (clarifications, before the cutoff)\n${clients.map((i) => `- ${i.question}`).join('\n')}\n` : '');
   writeOut(path.join(outDir, 'questions.md'), md);
 }
@@ -425,7 +448,7 @@ async function askWizard() {
     const item = yours[i];
     const cur = item.default !== undefined && item.default !== null ? String(item.default) : '';
     const tail = item.unit ? ` (${item.unit})` : '';
-    const a = await askLine(`(${i + 1}/${yours.length}) ${item.question}${tail}${cur ? ` [${cur}]` : ''}\n> `);
+    const a = await askLine(`(${i + 1}/${yours.length}) ${item.question}${tail}${cur ? ` [${cur}]` : ''}\n  How to answer: ${answerFormat(item)}\n> `);
     if (a === 'EOF' || a.toLowerCase() === 'quit') {
       rl.close();
       process.stdout.write('\nCancelled — nothing was saved. (Your documents are untouched; run bid-pack ask again anytime.)\n');
