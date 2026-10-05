@@ -60,7 +60,9 @@ A submission can never be packaged while anything is missing — the `pack` gate
 
 You talk to Claude (or ChatGPT, Codex, or similar) in normal English. The AI
 runs everything and explains the results. You never see a command line unless
-you want to.
+you want to. (Not sure what to say at each step? The
+[Conversation Script](CONVERSATION-SCRIPT.md) gives you the exact sentences,
+in order.)
 
 **One-time setup (5 minutes):** install once with a single command and connect
 your AI assistant (exact keystrokes in §4). Then say things like:

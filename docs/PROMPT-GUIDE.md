@@ -9,6 +9,10 @@ The working pattern is always the same:
 the tools enforce the honesty rules.** When you see `[FILL]`, that's a
 question addressed to you.
 
+**New to this? Start with the [Conversation Script](CONVERSATION-SCRIPT.md)** —
+the exact sentences to type at every stage of a bid, in order. This guide is
+the deeper prompt library behind it.
+
 ---
 
 ## 1. Setup per assistant (one-time)
@@ -82,10 +86,14 @@ I am bidding on a consultancy. Run the full tor-to-proposal bid pack
 
 Rules for you:
 - Start with bid_pack_start, then show me the bid screen — I decide go/no-go.
-- Then put EVERY question from out/questions.md to me in ONE message. I answer
-  once; write my answers to answers.json and run bid_pack_apply. Repeat until
-  zero open. Never invent an answer, never ask questions one by one.
-- Drafts get linted/simulated/audited with the tools; fix and loop until they pass.
+- Then ask me the open questions ONE AT A TIME in plain language (each has a
+  "how to answer" hint in questions.md). I answer in words; write my answers
+  to answers.json and run bid_pack_apply. Repeat until zero open — new
+  questions can appear when a document is first rendered; that is normal.
+  Never invent an answer and never suggest a number.
+- Drafts come from the AI briefs: draft from out/brief-cover-letter.md and
+  out/brief-technical-proposal.md, then lint/simulate/audit with the tools;
+  fix and loop until they pass.
 - Finish with the four PDFs rendered per references/render-specs.md and
   bid_pack_pack. Deliver pack/ + submission-checklist.md. Nothing is "done"
   while pack exits non-zero.
@@ -142,21 +150,23 @@ show every formula. Finally position my rate against the cited band.
 
 **Cover letter:**
 ```text
-Draft a one-page cover letter per assets/templates.md: verbatim title + ref +
-deadline block, 2-sentence understanding from Background/Objectives only, fit
-section quoting 3–5 JD requirements (p.X) with my CV evidence — mark [FILL]
-where I haven't given you evidence yet — compliance declarations, availability
-per the ToR start date. Then lint it with cover_letter_lint and fix everything
-it flags. No superlatives.
+Draft my cover letter from the brief: read out/brief-cover-letter.md and
+follow it exactly — it already contains the ToR facts, the compliance rows,
+my verified CV evidence, the required structure, and the honesty rules.
+Save the result as cover-letter.md in the bid folder, then lint it with
+cover_letter_lint and fix everything it flags. Where the brief says [FILL],
+ask me for the fact instead of inventing it. No superlatives.
 ```
 
 **Technical response + self-score:**
 ```text
-Draft the technical response: one section per scored criterion, highest weight
-first, in the client's vocabulary, every deliverable addressed. Extract the
-sub-elements of each criterion verbatim into sub-elements.json, then run
-simulate and give me the at-risk points. Loop with me: rewrite the weakest
-criterion, re-simulate, until at-risk ≈ 0.
+Draft my technical proposal from the brief: read out/brief-technical-proposal.md
+and follow it exactly — one section per deliverable/criterion, in the client's
+vocabulary, experience facts only from the brief's VERIFIED EVIDENCE section.
+Save it as technical-proposal.md, then extract the sub-elements of each
+criterion verbatim into sub-elements.json, run simulate, and give me the
+at-risk points. Loop with me: rewrite the weakest criterion, re-simulate,
+until at-risk ≈ 0.
 ```
 
 **Their forms:**

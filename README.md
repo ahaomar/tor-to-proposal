@@ -50,6 +50,10 @@ audit the result. The AI writes; the tool refuses to let it lie.
 Then, in your AI, just say: *"Run a bid pack on this folder"* and answer the
 questions it asks you — one at a time, in plain language.
 
+**Never sure what to type?** The full copy-paste conversation script — every
+sentence to say at every stage of a bid — is in
+[docs/CONVERSATION-SCRIPT.md](docs/CONVERSATION-SCRIPT.md).
+
 ### Door 2 — "I live in the terminal" (for technical users)
 
 ```bash
