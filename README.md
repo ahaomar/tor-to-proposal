@@ -21,7 +21,36 @@ dates, names or client facts. In a domain where one invented fact means
 disqualification (and vendor blacklisting), that is the feature, not a
 limitation.
 
-## Install — one command, once
+## Choose your door
+
+### Door 1 — "I use Claude / ChatGPT / Gemini" (for consultants, not coders)
+
+You never learn the CLI. You talk to your AI; the AI runs the machinery; you
+answer plain questions and paste one brief into the chat per document. One-time
+setup (about five minutes, a couple of copy-paste commands):
+
+**Claude Code users:**
+```bash
+npx skills add ahaomar/tor-to-proposal
+```
+
+**Claude Desktop / other MCP apps** — add the MCP server (see the
+[Technical Guide](docs/TECHNICAL-GUIDE.md) for per-app JSON/config):
+```bash
+claude mcp add tor-to-proposal -- npx -y tor-to-proposal mcp-server
+```
+
+**Any AI chat (no setup at all):** run `npx tor-to-proposal bid-pack start
+--tor tor.pdf --cv cv.pdf --dir mybid/` once with help from the
+[User Guide](docs/USER-GUIDE.md), then copy `out/brief-cover-letter.md` and
+`out/brief-technical-proposal.md` — complete, ready-to-paste prompts — into
+Claude/ChatGPT/Gemini, save the replies into the bid folder, and let the tool
+audit the result. The AI writes; the tool refuses to let it lie.
+
+Then, in your AI, just say: *"Run a bid pack on this folder"* and answer the
+questions it asks you — one at a time, in plain language.
+
+### Door 2 — "I live in the terminal" (for technical users)
 
 ```bash
 npx tor-to-proposal init
@@ -30,12 +59,9 @@ npx tor-to-proposal init
 That sets up your consultant profile (name, credentials, rates, master CV) at
 `.tor-to-proposal/profile.json` in the **current folder** (the legacy
 `~/.tor-to-proposal/profile.json` is still read if no local profile exists).
-Then use it with any AI assistant (Claude
-Desktop / Claude Code / Codex / ChatGPT) via the MCP server at
-`mcp/server.mjs`, or install the agent skill:
 
 ```bash
-npx skills add ahaomar/tor-to-proposal   # agent users
+npx skills add ahaomar/tor-to-proposal   # install as an agent skill
 ```
 
 Local-first: no network calls carry your documents. The only optional outbound
