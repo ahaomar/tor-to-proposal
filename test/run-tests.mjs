@@ -265,6 +265,35 @@ t('profile: refuses invented/out-of-range numbers and missing CV paths', () => {
   runE('profile.mjs', ['set', 'rates.defaults.loading=5'], { expect: 2 });
   runE('profile.mjs', ['set', 'cv.masterPath=/definitely/not/here.txt'], { expect: 2 });
 });
+t('profile: stored in current folder, legacy home profile read as fallback', () => {
+  // save lands in <cwd>/.tor-to-proposal/profile.json
+  runE('profile.mjs', ['set', 'identity.name=Cwd User'], { expect: 0 });
+  const local = path.join(TMP, '.tor-to-proposal', 'profile.json');
+  eq(JSON.parse(fs.readFileSync(local, 'utf8')).identity.name, 'Cwd User', 'local profile written');
+  runE('profile.mjs', ['erase'], { expect: 0 });
+  // no local profile -> legacy home one is read as fallback (home = TMP, cwd = TMP/legacy-cwd)
+  const legacyDir = path.join(TMP, 'legacy-cwd');
+  fs.mkdirSync(path.join(TMP, '.tor-to-proposal'), { recursive: true });
+  fs.writeFileSync(path.join(TMP, '.tor-to-proposal', 'profile.json'), JSON.stringify({ identity: { name: 'Legacy User' } }));
+  fs.mkdirSync(legacyDir, { recursive: true });
+  const r = spawnSync(process.execPath, [path.join(BIN, 'profile.mjs'), 'get', 'identity.name'], { encoding: 'utf8', cwd: legacyDir, env: HOME_ENV });
+  eq(r.status, 0, `legacy fallback get exit (${r.stderr})`);
+  eq(r.stdout.trim(), '"Legacy User"', 'legacy home profile used as fallback');
+  fs.rmSync(path.join(TMP, '.tor-to-proposal'), { recursive: true, force: true });
+});
+
+t('profile: init wizard (piped answers) saves to current folder; quit cancels', () => {
+  const answers = ['Wiz User', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Y', ''].join('\n');
+  const r = spawnSync(process.execPath, [path.join(BIN, 'profile.mjs'), 'init'], { encoding: 'utf8', cwd: TMP, env: HOME_ENV, input: answers });
+  eq(r.status, 0, `init exit (${r.stderr})`);
+  const saved = JSON.parse(fs.readFileSync(path.join(TMP, '.tor-to-proposal', 'profile.json'), 'utf8'));
+  eq(saved.identity.name, 'Wiz User', 'wizard saved name');
+  runE('profile.mjs', ['erase'], { expect: 0 });
+  // 'quit' at the first question -> nothing written
+  const q = spawnSync(process.execPath, [path.join(BIN, 'profile.mjs'), 'init'], { encoding: 'utf8', cwd: TMP, env: HOME_ENV, input: 'quit\n' });
+  eq(q.status, 0, `quit exit (${q.stderr})`);
+  eq(fs.existsSync(path.join(TMP, '.tor-to-proposal', 'profile.json')), false, 'quit writes nothing');
+});
 
 // ---- v2: cv-tailor ----
 t('cv-tailor build: reorders master-CV bullets, invents nothing', () => {

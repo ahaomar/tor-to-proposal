@@ -12,13 +12,12 @@
 // GATES PRESERVED: pricing never runs without user numbers; GAP terms never
 // claimed; audit gates the final bytes. The orchestrator only automates plumbing.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { fail, parseArgs, readText, writeOut, helpText, mdTable } from './lib.mjs';
-import { loadProfile } from './profile.mjs';
+import { loadProfile, profilePath } from './profile.mjs';
 
 const HELP = helpText('bid-pack', [
   'start  --tor <file.(pdf|docx|txt)> [--cv <file>] [--dir bid/] [--profile] [--no-cv-tailor]',
@@ -203,7 +202,7 @@ function start() {
     run('cv-gap.mjs', ['--tor', path.join(outDir, 'tor.txt'), '--cv', cvTxt, '--out', path.join(outDir, 'cv-gap-report.md')], { label: 'cv-gap' });
     state.steps.cvGap = { status: 'done' };
     if (!inDir('cv-tailored.md') && !args['no-cv-tailor']) {
-      const profFlag = (args.profile === undefined || args.profile === true) && fs.existsSync(path.join(os.homedir(), '.tor-to-proposal', 'profile.json')) ? ['--profile', path.join(os.homedir(), '.tor-to-proposal', 'profile.json')] : [];
+      const profFlag = (args.profile === undefined || args.profile === true) && loadProfile() ? ['--profile', profilePath()] : [];
       run('cv-tailor.mjs', ['build', '--cv', cvTxt, '--extract', path.join(outDir, 'tor-extract.json'), ...profFlag, '--gap', path.join(outDir, 'cv-gap-report.md'), '--out', path.join(outDir, 'cv-tailored.md'), '--report', path.join(outDir, 'cv-tailor-report.md')], { label: 'cv-tailor build' });
     }
     state.steps.cvTailored = { status: inDir('cv-tailored.md') ? 'done' : 'skipped' };

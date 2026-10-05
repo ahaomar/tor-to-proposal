@@ -28,7 +28,9 @@ npx tor-to-proposal init
 ```
 
 That sets up your consultant profile (name, credentials, rates, master CV) at
-`~/.tor-to-proposal/profile.json`. Then use it with any AI assistant (Claude
+`.tor-to-proposal/profile.json` in the **current folder** (the legacy
+`~/.tor-to-proposal/profile.json` is still read if no local profile exists).
+Then use it with any AI assistant (Claude
 Desktop / Claude Code / Codex / ChatGPT) via the MCP server at
 `mcp/server.mjs`, or install the agent skill:
 

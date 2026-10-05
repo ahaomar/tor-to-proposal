@@ -183,7 +183,7 @@ const TOOLS = [
   {
     name: 'profile_set',
     description:
-      'One-time consultant profile (stored at ~/.tor-to-proposal/profile.json). Set dotted fields: identity.name, identity.credentials, identity.email, identity.phone, identity.title, identity.location, identity.nationality, identity.languages (comma string), rates.floor.annualIncome, rates.floor.billableDays, rates.floor.costLoading, rates.defaults.base/basis/loading/contingency/currency, cv.masterPath. Every value is USER-SUPPLIED — never guess one.',
+      'One-time consultant profile (stored at .tor-to-proposal/profile.json in the current working folder; legacy ~/.tor-to-proposal/profile.json is read as fallback). Set dotted fields: identity.name, identity.credentials, identity.email, identity.phone, identity.title, identity.location, identity.nationality, identity.languages (comma string), rates.floor.annualIncome, rates.floor.billableDays, rates.floor.costLoading, rates.defaults.base/basis/loading/contingency/currency, cv.masterPath. Every value is USER-SUPPLIED — never guess one.',
     inputSchema: S({
       pairs: { type: 'array', items: { type: 'string' }, description: 'key=value pairs, e.g. "identity.name=Ayesha Khan", "rates.defaults.base=400"' },
     }, ['pairs']),

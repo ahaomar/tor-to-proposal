@@ -57,7 +57,7 @@ formula overwrite) · **3** dependencies missing.
 | `bid-pack start` | `--tor file [--cv file] [--dir bid/] [--no-cv-tailor]` | runs pdf-extract → extract → cv-gap → cv-tailor; `out/questions.{json,md}` (consolidated questionnaire), `out/bid-state.json`, `out/bid-context.json` |
 | `bid-pack apply` | `--answers answers.json [--dir bid/]` | records answers; runs pricing + financial proposal on user numbers; `out/cv-evidence.json`, `out/fill-answers.json`, `out/clarifications.md`; regenerates questions |
 | `bid-pack pack` | `--dir bid/ [--fallback-pdf] [--no-zip]` | delegates to `package` |
-| `profile` (`init`) | `init \| set k=v… \| get [k] \| path \| erase` | `~/.tor-to-proposal/profile.json` — user-supplied identity, floor math, rate defaults, master-CV path |
+| `profile` (`init`) | `init \| set k=v… \| get [k] \| path \| erase` | `.tor-to-proposal/profile.json` in the current folder (legacy `~/.tor-to-proposal/profile.json` read as fallback) — user-supplied identity, floor math, rate defaults, master-CV path |
 | `cv-tailor build` | `--cv master.txt --extract tor-extract.json [--profile p.json] [--gap r.md]` | `cv-tailored.md` (reordered master-CV material only) + `cv-tailor-report.md` (trace + terminology mirror) |
 | `cv-tailor lint` | `--cv tailored.md --master master.txt [--gap] [--evidence cv-evidence.json]` | anchor table; exit 1 on unanchored bullets, altered numbers, GAP terms |
 | `financial-proposal` | `--pricing pricing.json --extract tor-extract.json [--context bid-context.json] [--xlsx]` | `financial-proposal.md` (+ `.xlsx` with visible formulas: `D8=B8*C8`, `D10=SUM`) |
@@ -111,7 +111,7 @@ tor-extract criteria exactly.
 
 **v2 bid-pack contracts** (all under `<bid-dir>/out/`):
 
-- **`~/.tor-to-proposal/profile.json`** — `{identity{name,credentials,…},
+- **`.tor-to-proposal/profile.json` (in the current folder)** — `{identity{name,credentials,…},
   rates{floor{annualIncome,billableDays,costLoading},
   defaults{base,basis,currency,loading,contingency}}, cv{masterPath}}`.
   Every value user-supplied (`profile set` validates numbers/ranges and the

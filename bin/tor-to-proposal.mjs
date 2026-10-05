@@ -40,7 +40,7 @@ const DESCRIPTIONS = {
   render: 'fallback markdown -> PDF emitter (no document tooling needed)',
   package: 'verify final docs (re-extract + re-audit) -> pack/ + checklist + zip',
   'bid-pack': 'one-shot orchestrator: start | apply | pack + the consolidated questionnaire',
-  profile: 'consultant profile wizard (~/.tor-to-proposal/profile.json)',
+  profile: 'consultant profile wizard (.tor-to-proposal/profile.json in the current folder)',
   init: 'alias for profile — one-time setup wizard',
 };
 
@@ -59,5 +59,9 @@ if (!TOOLS[cmd]) {
   process.exit(1);
 }
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), TOOLS[cmd]);
-const res = spawnSync(process.execPath, [script, ...rest], { stdio: 'inherit' });
+// `init` is an alias for `profile init` — without the subcommand profile.mjs
+// would only print its help (this is why plain `tor-to-proposal init` never
+// started the wizard before).
+const sub = cmd === 'init' ? ['init', ...rest] : rest;
+const res = spawnSync(process.execPath, [script, ...sub], { stdio: 'inherit' });
 process.exit(res.status ?? 1);
