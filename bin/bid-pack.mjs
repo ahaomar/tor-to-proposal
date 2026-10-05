@@ -380,6 +380,8 @@ function apply() {
   fresh.items = fresh.items.filter((i) => i.answer === null);
   fresh.openCount = fresh.items.length;
   writeQuestions(fresh);
+  const stillYours = fresh.items.filter((i) => i.type !== 'client');
+  const stillClient = fresh.items.filter((i) => i.type === 'client');
   const state = readState();
   state.steps.questions = { status: 'done', open: fresh.openCount };
   state.steps.pricing = { status: inDir('pricing.json') ? 'done' : 'awaiting-user-numbers' };
@@ -388,7 +390,13 @@ function apply() {
 
   process.stdout.write(
     `# Apply: ${applied} answer(s) recorded, ${fresh.openCount} still open\n\n` +
-      (fresh.openCount ? mdTable(['#', 'Still open'], fresh.items.map((i, ix) => [ix + 1, `**${i.id}** — ${i.question}`])) + '\n' : 'All questions resolved. Draft/generate, then: bid-pack pack --dir ' + dir + '\n') +
+      (stillYours.length
+        ? `## Still open — answer these (bid-pack ask)\n${mdTable(['#', 'Question'], stillYours.map((i, ix) => [ix + 1, `**${i.id}** — ${i.question}`]))}\n`
+        : '') +
+      (stillClient.length
+        ? `## Reminders — ACTIONS for you, not answers\n(These describe things to DO outside the tool: contact the client, verify a fact. They never close by typing an answer here.)\n${mdTable(['#', 'Action'], stillClient.map((i, ix) => [ix + 1, `**${i.id}** — ${i.question}`]))}\n`
+        : '') +
+      (!fresh.openCount ? `All questions resolved. Draft/generate, then: bid-pack pack --dir ${dir}\n` : '') +
       (fills.length ? `\nFill answers recorded in out/fill-answers.json — apply them to the drafts, re-run the lints, and the questions disappear once the [FILL]s are gone.\n` : '') +
       (evidence.length ? `\nCV evidence entries: ${evidence.length} (out/cv-evidence.json) — cv-tailor lint accepts these as user-input anchors.\n` : '')
   );
