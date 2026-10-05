@@ -336,6 +336,8 @@ function apply() {
     const r = run('pricing-model.mjs', argv, { label: 'pricing-model' });
     pricingRan = r !== null;
     process.stderr.write(r === null ? 'pricing NOT written — check the values; the pricing question stays open.\n' : `pricing written from user-confirmed numbers -> ${outDir}/pricing.json\n`);
+  } else if (answers['Q-PRICING-CONFIRM'] !== undefined) {
+    process.stderr.write('Q-PRICING-CONFIRM: no usable pricing in that answer — reply "yes" to use your saved rates, or new numbers like "base 420 loading 0.25". The pricing question stays open.\n');
   }
 
   // side effect: (re)render the financial proposal when its inputs are ready
@@ -414,6 +416,10 @@ async function askWizard() {
   );
 
   const answers = {};
+  // a pricing answer is only usable if it is "yes" or contains a base number —
+  // anything else would silently skip pricing and re-open the question later,
+  // so the wizard rejects it on the spot and re-asks
+  const pricingAnswerUsable = (a) => /^yes$/i.test(a) || /\bbase\b\s*[\d]/i.test(a);
   let i = 0;
   while (i < yours.length) {
     const item = yours[i];
@@ -434,6 +440,10 @@ async function askWizard() {
     }
     if (a === '' && cur === '') {
       process.stdout.write('  This one needs an answer from you (no suggested default). Type it, or "quit" to stop.\n');
+      continue;
+    }
+    if (item.id === 'Q-PRICING-CONFIRM' && a !== '' && !pricingAnswerUsable(a)) {
+      process.stdout.write('  I can\'t price from that alone. Either type "yes" to use the saved rates shown above, or give new numbers like: base 420 loading 0.25 contingency 0.1\n');
       continue;
     }
     answers[item.id] = a === '' ? item.default : a;
