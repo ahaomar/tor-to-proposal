@@ -374,6 +374,13 @@ t('bid-pack start: mechanical steps run, consolidated questions emitted', () => 
   ok(ids.includes('Q-PRICING-BASE'), 'pricing question open (no profile)');
   ok(ids.includes('Q-AVAILABILITY'), 'availability asked');
   includes(fs.readFileSync(path.join(TMP, 'bid/out/questions.md'), 'utf8'), 'answer these in one go', 'questionnaire md');
+  // AI briefs: the paste-into-any-AI drafting path must exist after start
+  for (const b of ['brief-cover-letter.md', 'brief-technical-proposal.md']) {
+    const brief = fs.readFileSync(path.join(TMP, 'bid/out', b), 'utf8');
+    includes(brief, 'AI BRIEF', `${b} generated`);
+    includes(brief, 'NO superlatives', `${b} carries honesty rules`);
+    includes(brief, 'VERIFIED EVIDENCE', `${b} carries CV evidence`);
+  }
 });
 t('bid-pack apply: pricing runs only on user answers; fills resolve via known ids', () => {
   fs.writeFileSync(path.join(TMP, 'answers.json'), JSON.stringify({

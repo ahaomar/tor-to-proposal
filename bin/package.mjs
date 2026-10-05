@@ -130,7 +130,7 @@ const verifyMd = (file, key) => {
 
 for (const doc of DOCS) {
   const a = inv[doc.key];
-  if (!a) { checks.push([doc.name, 'MISSING', '—', `produce ${doc.key}.(pdf|docx|xlsx|md) in ${dir} or ${dir}/out`]); hard++; continue; }
+  if (!a) { checks.push([doc.name, 'MISSING', '—', (doc.key === 'cover-letter' || doc.key === 'technical-proposal') ? `paste out/brief-${doc.key}.md into any AI chat, save the reply as ${doc.key}.md in ${dir} or ${dir}/out` : `produce ${doc.key}.(pdf|docx|xlsx|md) in ${dir} or ${dir}/out`]); hard++; continue; }
   let v;
   try {
     v = a.ext === 'pdf' ? await verifyPdf(a.path, doc.key) : a.ext === 'docx' ? await verifyDocx(a.path, doc.key) : a.ext === 'xlsx' ? await verifyXlsx(a.path, doc.key) : verifyMd(a.path, doc.key);

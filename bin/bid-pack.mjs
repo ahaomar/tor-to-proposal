@@ -202,6 +202,115 @@ function renderPreviews() {
   }
 }
 
+// ---------------- AI briefs ----------------
+// The tool never drafts the cover letter or technical proposal (honesty rule:
+// prose about the user's career must come from the user or their assistant).
+// These briefs make that step concrete: a self-contained prompt the user
+// pastes into ANY AI, containing the ToR facts, requirements, verified CV
+// evidence, the required structure, and the honesty rules. The tool audits
+// the result afterward either way.
+function writeBriefs() {
+  const extractPath = inDir('tor-extract.json');
+  if (!extractPath) return;
+  const extract = JSON.parse(fs.readFileSync(extractPath, 'utf8'));
+  const profile = loadProfile();
+  const context = writeContext();
+  const id = profile?.identity || {};
+  const consultant = `${id.name || '[YOUR NAME]'}${id.credentials ? `, ${id.credentials}` : ''}`;
+  const v = (x) => (x && x.value ? `${x.value}${x.page ? ` (p.${x.page})` : ''}` : 'not stated in the ToR text');
+  const tailoredPath = inDir('cv-tailored.md');
+  const tailored = tailoredPath ? fs.readFileSync(tailoredPath, 'utf8') : '';
+  const matrixPath = inDir('compliance-matrix.md');
+  const matrix = matrixPath ? fs.readFileSync(matrixPath, 'utf8').split('\n').filter((l) => l.trim().startsWith('|') && !/^\|\s*[-:\s|]+\|/.test(l) && !/requirement/i.test(l.split('|')[1] ?? '')).join('\n') : '';
+  const deliverables = (extract.deliverables || []).map((d, i) => `${i + 1}. ${d.value || JSON.stringify(d)}${d.page ? ` (p.${d.page})` : ''}`).join('\n') || '(see compliance matrix below)';
+
+  const shared = `# RULES the drafted document MUST obey (the tool audits every line afterward)
+1. NO superlatives — never write: leading, world-class, renowned, premier, cutting-edge, state-of-the-art, best-in-class, unparalleled, top-tier, foremost, "exceptional expertise", "vast experience". Show evidence instead.
+2. Every fact about the assignment needs a page tag like (p.2). Every fact about the consultant's experience must come ONLY from the VERIFIED EVIDENCE section below — if it is not there, do not write it.
+3. If a required fact is missing, write [FILL: what is missing] instead of inventing it.
+4. Use the client's own vocabulary and terms exactly as they appear in the ToR.
+5. Output ONLY the finished document in markdown. No commentary, no explanation.
+`;
+
+  // ---- cover letter brief ----
+  const cl = `# AI BRIEF — Cover Letter (copy this ENTIRE file into Claude, ChatGPT, Gemini, or any AI)
+
+You are drafting a one-page cover letter for a consultant bidding on the assignment below.
+Consultant: ${consultant}${id.email ? ` | ${id.email}` : ''}${id.phone ? ` | ${id.phone}` : ''}${id.location ? ` | ${id.location}` : ''}
+
+# ASSIGNMENT FACTS (from the ToR — cite these page tags as given)
+- Title: ${v(extract.title)}
+- Reference: ${v(extract.referenceNumber)}
+- Client: ${v(extract.client)}
+- Duration: ${v(extract.duration)}
+- Duty station: ${v(extract.dutyStation)}
+- Submission deadline: ${v(extract.deadline)}${!extract.deadline ? ' — the letter should say the deadline will be confirmed with the client' : ''}
+- Deliverables and dates:
+${deliverables}
+
+# REQUIREMENTS TO ADDRESS (verbatim from the compliance matrix)
+${matrix || '(run bid-pack start first to generate the compliance matrix)'}
+
+# VERIFIED EVIDENCE (the consultant's master CV, already tailored to this ToR — the ONLY experience facts you may use)
+${tailored ? tailored.slice(0, 6000) : '(no CV provided — ask the user for their master CV; do not invent experience)'}
+
+# DECLARED FACTS (the consultant confirmed these; use them verbatim)
+- Availability: ${context.availabilityDate || '[FILL: ask the consultant]'}
+- Proposal validity: ${context.validity || '[FILL: e.g. 90 days from submission]'}
+- Tax treatment: ${context.taxes || '[FILL: ask the consultant]'}
+- Reimbursables: ${context.reimbursables || '[FILL: ask the consultant]'}
+
+${shared}
+# REQUIRED STRUCTURE
+Dear [client committee],
+RE: [exact assignment title] — Reference: [exact ref] (p.X)
+[1 short paragraph: understanding of the assignment, facts only, page-tagged]
+[3–4 short blocks, each: a verbatim requirement (p.X) + matching evidence from VERIFIED EVIDENCE]
+[Compliance paragraph: validity, GCC acceptance, tax, reimbursables]
+[Availability + contact line]
+Sincerely,
+${consultant}
+Keep it under 550 words.
+`;
+
+  // ---- technical proposal brief ----
+  const tp = `# AI BRIEF — Technical Proposal (copy this ENTIRE file into Claude, ChatGPT, Gemini, or any AI)
+
+You are drafting a technical proposal for the same consultant and assignment as the cover letter brief.
+Consultant: ${consultant}
+
+# ASSIGNMENT FACTS (from the ToR — cite these page tags as given)
+- Title: ${v(extract.title)}
+- Reference: ${v(extract.referenceNumber)}
+- Duration: ${v(extract.duration)}
+- Deliverables and dates:
+${deliverables}
+
+# REQUIREMENTS (verbatim from the compliance matrix — cover EVERY row)
+${matrix || '(run bid-pack start first to generate the compliance matrix)'}
+
+# VERIFIED EVIDENCE (master CV — the ONLY experience facts you may use)
+${tailored ? tailored.slice(0, 6000) : '(no CV provided — ask the user for their master CV; do not invent experience)'}
+
+# DECLARED FACTS
+- Availability: ${context.availabilityDate || '[FILL: ask the consultant]'}
+- Validity: ${context.validity || '[FILL]'}
+- Tax: ${context.taxes || '[FILL]'}; Reimbursables: ${context.reimbursables || '[FILL]'}
+
+${shared}
+# REQUIRED STRUCTURE
+# Technical Response — [assignment title] ([reference])
+One section PER DELIVERABLE above (keep the client's own numbering, titles, and dates).
+Each section: Approach (what will be done and why it fits the ToR) -> Steps (numbered) ->
+Quality control (how correctness is checked) -> Relevant experience (ONLY from VERIFIED EVIDENCE).
+End with a short Payment terms section referencing the ToR payment schedule (p.X).
+`;
+
+  writeOut(path.join(outDir, 'brief-cover-letter.md'), cl);
+  writeOut(path.join(outDir, 'brief-technical-proposal.md'), tp);
+  process.stderr.write(`AI briefs written: out/brief-cover-letter.md, out/brief-technical-proposal.md — paste one into any AI chat, save the reply as cover-letter.md / technical-proposal.md in ${dir}\n`);
+}
+
 // ---------------- context ----------------
 function writeContext() {
   const extractPath = inDir('tor-extract.json');
@@ -249,8 +358,8 @@ function start() {
       `  tailored CV, pricing, financial proposal, final PDFs + zip.\n\n` +
       `PRODUCED BY YOU + YOUR AI ASSISTANT (the tool drafts nothing in your name, then\n` +
       `  verifies every line — this is the honesty rule):\n` +
-      `  [ ] Cover letter (template: assets/templates.md) — needed before pack\n` +
-      `  [ ] Technical proposal (one section per scored criterion/deliverable) — needed before pack\n` +
+      `  [ ] Cover letter — paste out/brief-cover-letter.md into any AI chat, save the reply as cover-letter.md\n` +
+      `  [ ] Technical proposal — paste out/brief-technical-proposal.md, save the reply as technical-proposal.md\n` +
       `  [ ] Your answers to the bid questions — via: bid-pack ask --dir ${dir}\n\n` +
       `You will see this exact checklist again at pack time; nothing can be packaged while a box is open.\n\n`
   );
@@ -288,6 +397,7 @@ function start() {
   state.steps.questions = { status: 'done', open: q.openCount };
   writeState(state);
   renderPreviews();
+  writeBriefs();
 
   // report
   const extract = JSON.parse(fs.readFileSync(path.join(outDir, 'tor-extract.json'), 'utf8'));
@@ -416,6 +526,7 @@ function apply() {
   state.steps.pricing = { status: inDir('pricing.json') ? 'done' : 'awaiting-user-numbers' };
   writeState(state);
   renderPreviews();
+  writeBriefs();
 
   process.stdout.write(
     `# Apply (round ${round}): ${applied} answer(s) recorded, ${fresh.openCount} still open\n\n` +

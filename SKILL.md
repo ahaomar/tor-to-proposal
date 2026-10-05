@@ -101,6 +101,15 @@ Repeat until `0 still open`.
 
 ### Phase 3 — Draft all four documents (you draft, tools gate)
 
+**Non-technical users:** the tool writes ready-to-paste AI briefs at
+`out/brief-cover-letter.md` and `out/brief-technical-proposal.md` after
+`start` and `apply` — each is a self-contained prompt (ToR facts with page
+tags, compliance rows, verified CV evidence, structure, honesty rules). The
+user pastes one into any AI chat, saves the reply as `cover-letter.md` /
+`technical-proposal.md` in `<bid-dir>/`, and the tool audits it. The brief is
+the canonical drafting path for laymen; the manual route below is for agents
+drafting directly.
+
 Write drafts to `<bid-dir>/` as `cover-letter.md`, `technical-proposal.md`
 (`cv-tailored.md` already exists from Phase 1; edit it only with master-CV
 material or user evidence answers).

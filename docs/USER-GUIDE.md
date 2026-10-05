@@ -162,10 +162,17 @@ a green ✔ MATCH table and red **"GAP — do not claim"** lines. Those GAP line
 must not appear anywhere in your bid, no matter how tempting — the tool
 enforces it.
 
-**Step 4 — The drafts.** A one-page cover letter and a technical response with
-**one section per scoring criterion**, quoting the ToR with page numbers.
-Places it can't fill honestly appear as `[FILL]` — answer them and the drafts
-are re-checked automatically.
+**Step 4 — The drafts (paste a brief into your AI).** The tool never writes a
+cover letter or technical proposal in your name — a document about YOUR career
+must come from YOUR facts. Instead it writes two **AI briefs** for you:
+`out/brief-cover-letter.md` and `out/brief-technical-proposal.md`. Each brief
+is a complete, ready-to-paste prompt containing the ToR facts with page
+numbers, every requirement, your verified CV evidence, the required structure,
+and the honesty rules. **Copy the whole file, paste it into Claude/ChatGPT/
+Gemini, save the reply as `cover-letter.md` / `technical-proposal.md` in your
+bid folder.** The tool then lints and audits every line of what the AI wrote —
+superlatives, invented facts, and untraceable claims are rejected with the
+exact line number.
 
 **Step 5 — The self-score.** The tool scores your draft against their grid:
 *"Criterion 3 (25 pts): 2 of 3 sub-elements covered; missing: sustainability
