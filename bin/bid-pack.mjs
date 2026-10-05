@@ -117,7 +117,19 @@ function buildQuestions() {
         : f === 'financial-proposal.md' && /tax/.test(detail) ? 'TAXES'
         : null;
       const id = known ? `Q-FILL-${known}` : 'Q-FILL-' + crypto.createHash('md5').update(f + '|' + excerpt).digest('hex').slice(0, 8);
-      add({ id, area: 'draft-fill', type: 'string', question: `${f}: a placeholder needs a real fact — “…${excerpt}…”. What is the fact?`, why: 'No invented facts. If you cannot supply it, it stays [FILL] and the audit blocks submission.' });
+      // known slots get plain-language questions; unknown ones keep the raw excerpt
+      const friendly = known === 'CONSULTANT'
+        ? `financial-proposal.md: whose name goes in the consultant line of the financial proposal? (Usually you — exactly as on your CV.)`
+        : known === 'REIMBURSABLES'
+          ? `financial-proposal.md: which costs does the client reimburse on top of your fee? Write ONE clear sentence — or write none if nothing is reimbursable (the row is then removed).`
+          : known === 'TAXES'
+            ? `financial-proposal.md: what is the tax treatment of your prices? ONE sentence, e.g. "All amounts are exclusive of VAT" or "All amounts are tax-inclusive".`
+            : null;
+      add({
+        id, area: 'draft-fill', type: 'string',
+        question: friendly || `${f}: a placeholder needs a real fact — “…${excerpt}…”. What is the fact?`,
+        why: 'No invented facts. If you cannot supply it, it stays [FILL] and the audit blocks submission.',
+      });
     }
   }
   // cv-tailor unanchored bullets -> evidence questions
@@ -391,12 +403,12 @@ function apply() {
   process.stdout.write(
     `# Apply: ${applied} answer(s) recorded, ${fresh.openCount} still open\n\n` +
       (stillYours.length
-        ? `## Still open — answer these (bid-pack ask)\n${mdTable(['#', 'Question'], stillYours.map((i, ix) => [ix + 1, `**${i.id}** — ${i.question}`]))}\n`
-        : '') +
+        ? `## Still open — answer these (bid-pack ask)\n${mdTable(['#', 'Question'], stillYours.map((i, ix) => [ix + 1, `**${i.id}** — ${i.question}`]))}\nNEXT STEP: run  npx tor-to-proposal bid-pack ask --dir ${dir}  — it asks each of these in plain language, one at a time.\n`
+        : `NEXT STEP: run  npx tor-to-proposal bid-pack pack --dir ${dir} --fallback-pdf  to build the submission pack.\n`) +
       (stillClient.length
         ? `## Reminders — ACTIONS for you, not answers\n(These describe things to DO outside the tool: contact the client, verify a fact. They never close by typing an answer here.)\n${mdTable(['#', 'Action'], stillClient.map((i, ix) => [ix + 1, `**${i.id}** — ${i.question}`]))}\n`
         : '') +
-      (!fresh.openCount ? `All questions resolved. Draft/generate, then: bid-pack pack --dir ${dir}\n` : '') +
+      (!fresh.openCount ? `All questions resolved.\n` : '') +
       (fills.length ? `\nFill answers recorded in out/fill-answers.json — apply them to the drafts, re-run the lints, and the questions disappear once the [FILL]s are gone.\n` : '') +
       (evidence.length ? `\nCV evidence entries: ${evidence.length} (out/cv-evidence.json) — cv-tailor lint accepts these as user-input anchors.\n` : '')
   );

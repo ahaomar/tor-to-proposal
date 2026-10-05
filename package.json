@@ -1,6 +1,6 @@
 {
   "name": "tor-to-proposal",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "The bid tool that refuses to lie. ToR + CV in -> verified bid pack out: cover letter, tailored CV, technical response, financial proposal, submission checklist. Deterministic CLI + agent skill for UN / NGO / government consultants.",
   "type": "module",
   "bin": {
