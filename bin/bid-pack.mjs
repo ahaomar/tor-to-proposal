@@ -327,7 +327,11 @@ function apply() {
     if (pricing.loading !== null && pricing.loading !== undefined) argv.push('--loading', String(pricing.loading));
     if (pricing.contingency !== null && pricing.contingency !== undefined) argv.push('--contingency', String(pricing.contingency));
     const extractPath = inDir('tor-extract.json');
-    const effort = pricing.effort ?? (extractPath && JSON.parse(fs.readFileSync(extractPath, 'utf8')).effortPersonDays?.value);
+    // users answer effort in natural language ("25", "25 person-days", "about 25 days") —
+    // pricing-model needs a bare number, so coerce here instead of failing pricing
+    const effortRaw = pricing.effort ?? (extractPath && JSON.parse(fs.readFileSync(extractPath, 'utf8')).effortPersonDays?.value);
+    const effortMatch = effortRaw === null || effortRaw === undefined ? null : String(effortRaw).replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+    const effort = effortMatch ? Number(effortMatch[0]) : null;
     if (effort !== null && effort !== undefined) argv.push('--effort', String(effort));
     const r = run('pricing-model.mjs', argv, { label: 'pricing-model' });
     pricingRan = r !== null;

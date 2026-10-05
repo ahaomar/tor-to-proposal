@@ -447,6 +447,16 @@ t('bid-pack ask: interactive wizard answers open questions and applies them', ()
   includes(r.stdout, 'recorded', 'apply ran');
   runE('profile.mjs', ['erase'], { expect: 0 });
 });
+t('bid-pack apply: natural-language effort ("25 person-days") still runs pricing', () => {
+  runE('profile.mjs', ['set', 'identity.name=Fatima Rahman', 'rates.defaults.base=400', 'rates.defaults.loading=0.25', 'rates.defaults.contingency=0.1'], { expect: 0 });
+  runE('bid-pack.mjs', ['start', '--tor', F('tor.txt'), '--cv', F('cv.txt'), '--dir', 'bid4'], { expect: 0 });
+  fs.writeFileSync(path.join(TMP, 'answers4.json'), JSON.stringify({ 'Q-PRICING-CONFIRM': 'yes', 'Q-EFFORT-DAYS': '25 person-days' }, null, 2));
+  runE('bid-pack.mjs', ['apply', '--answers', 'answers4.json', '--dir', 'bid4'], { expect: 0 });
+  ok(fs.existsSync(path.join(TMP, 'bid4/out/pricing.json')), 'pricing.json written despite wordy effort answer');
+  const p = JSON.parse(fs.readFileSync(path.join(TMP, 'bid4/out/pricing.json'), 'utf8'));
+  eq(p.inputs.effortDays, 25, 'effort coerced to the number 25');
+  runE('profile.mjs', ['erase'], { expect: 0 });
+});
 
 // ---- v2: router lists new commands ----
 t('router: v2 commands listed, init alias dispatches to profile', () => {
